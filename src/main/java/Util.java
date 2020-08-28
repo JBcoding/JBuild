@@ -1,3 +1,4 @@
+import com.jogamp.opengl.GL2;
 import org.apache.commons.math3.geometry.Point;
 import org.apache.commons.math3.geometry.euclidean.threed.Vector3D;
 import org.apache.commons.math3.geometry.euclidean.twod.Vector2D;
@@ -50,7 +51,21 @@ public class Util {
         return null;
     }
 
-    public static double getIntersectionDistance(Vector3D startPoint, Vector3D direction, Vector3D min, Vector3D max, Vector3D p, Axis3D axisToDiscard) {
+    public static void drawLine(GL2 gl, Vector3D p1, Vector3D p2) {
+        gl.glColor3d( .8f, .8f, 1);
+
+        gl.glLineWidth(8);
+
+        gl.glBegin(GL2.GL_LINES);
+
+        gl.glVertex3d(p1.getX(), p1.getY(), p1.getZ());
+
+        gl.glVertex3d(p2.getX(), p2.getY(), p2.getZ());
+
+        gl.glEnd();
+    }
+
+    public static Vector3D getIntersectionPoint(Vector3D startPoint, Vector3D direction, Vector3D min, Vector3D max, Vector3D p) {
         /*
         plane Equation N_x (x - p1_x) + N_y (y - p1_y) + N_z (z - p1_z) = 0
         Line equation (x, y, z) = (o_x + d_x t, o_y + d_y t, o_z + d_z t), o = startPoint, d = direction
@@ -63,14 +78,22 @@ public class Util {
         Vector3D normalVector = (min.subtract(p).crossProduct(max.subtract(p)));
         double B = normalVector.dotProduct(direction);
         if (B == 0) { // Line is parallel to the plane
-            return Double.MAX_VALUE;
+            return null;
         }
         double A = normalVector.dotProduct(startPoint) - normalVector.dotProduct(min);
         double t = -A / B;
         if (t <= 0) { // The plane is behind the line
+            return null;
+        }
+        return startPoint.add(direction.scalarMultiply(t));
+    }
+
+    public static double getIntersectionDistance(Vector3D startPoint, Vector3D direction, Vector3D min, Vector3D max, Vector3D p, Axis3D axisToDiscard) {
+        Vector3D planeIntersectionPoint = getIntersectionPoint(startPoint, direction, min, max, p);
+        if (planeIntersectionPoint == null) {
             return Double.MAX_VALUE;
         }
-        Vector3D planeIntersectionPoint = startPoint.add(direction.scalarMultiply(t));
+        double t = planeIntersectionPoint.distance(startPoint) / direction.distance(Vector3D.ZERO);
 
         Vector2D min2d, max2d, pip2d;
         switch (axisToDiscard) {

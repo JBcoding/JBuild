@@ -108,9 +108,9 @@ public class Polygon extends Shape {
 
         gl.glEnd();
 
-        //drawLine(gl, p1, p2);
-        //drawLine(gl, p2, p3);
-        //drawLine(gl, p3, p1);
+        //Util.drawLine(gl, p1, p2);
+        //Util.drawLine(gl, p2, p3);
+        //Util.drawLine(gl, p3, p1);
     }
 
     public void drawAndSplitTriangles(GL2 gl, Vector3D p1, Vector3D p2, Vector3D p3, Vector3D lightNormal) {
@@ -164,23 +164,9 @@ public class Polygon extends Shape {
                 Vector3D point2 = points.get((i + 1) % points.size());
                 point2 = getRealPoint(point2);
 
-                drawLine(gl, point1, point2);
+                Util.drawLine(gl, point1, point2);
             }
         }
-    }
-
-    private void drawLine(GL2 gl, Vector3D p1, Vector3D p2) {
-        gl.glColor3d( .8f, .8f, 1);
-
-        gl.glLineWidth(8);
-
-        gl.glBegin(GL2.GL_LINES);
-
-        gl.glVertex3d(p1.getX(), p1.getY(), p1.getZ());
-
-        gl.glVertex3d(p2.getX(), p2.getY(), p2.getZ());
-
-        gl.glEnd();
     }
 
     @Override
