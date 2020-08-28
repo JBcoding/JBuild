@@ -3,9 +3,13 @@ import com.jogamp.opengl.awt.GLCanvas;
 import com.jogamp.opengl.glu.GLU;
 import org.apache.commons.math3.geometry.euclidean.threed.Vector3D;
 import org.apache.commons.math3.linear.RealMatrix;
+import org.fife.ui.rsyntaxtextarea.RSyntaxTextArea;
+import org.fife.ui.rsyntaxtextarea.SyntaxConstants;
+import org.fife.ui.rtextarea.RTextScrollPane;
 
 
-import javax.swing.JFrame;
+import javax.swing.*;
+import java.awt.*;
 import java.awt.event.*;
 import java.io.*;
 import java.util.ArrayList;
@@ -26,6 +30,8 @@ public class Main implements GLEventListener {
     private boolean debug = false;
 
     private Building selectedBuilding = null;
+
+    GLCanvas canvas = null;
 
     @Override
     public void display(GLAutoDrawable drawable) {
@@ -135,6 +141,11 @@ public class Main implements GLEventListener {
         fovX = fovY * aspect;
         this.width = width / 2;
         this.height = height / 2;
+
+        if (canvas != null) {
+            this.width = canvas.getWidth();
+            this.height = canvas.getHeight();
+        }
         glu.gluPerspective(fovY, aspect, 0.1f, 100.0f); // fovy, aspect, zNear, zFar
 
         // Enable the model-view transform
@@ -150,7 +161,7 @@ public class Main implements GLEventListener {
     }
 
     public static void main(String[] args) throws IOException {
-        File file = new File("/Users/madsbjoern/Desktop/house.jbuild");
+        File file = new File("/home/mathias/Desktop/building.jbuild");
         //getting the capabilities object of GL2 profile
         final GLProfile profile = GLProfile.get(GLProfile.GL2);
         GLCapabilities capabilities = new GLCapabilities(profile);
@@ -160,6 +171,7 @@ public class Main implements GLEventListener {
         // The canvas
         final GLCanvas glcanvas = new GLCanvas(capabilities);
         final Main l = new Main();
+        l.canvas = glcanvas;
         //p.rotate(Axis3D.Y, -Math.PI / 4);
         //p.translate(new Vector3D(0.5, 0, 0));
         //p.scale(new Vector2D(1.2, 0.8));
@@ -203,12 +215,32 @@ public class Main implements GLEventListener {
         l.addBuilding(b3);
         l.addBuilding(b4);
         glcanvas.addGLEventListener(l);
-        glcanvas.setSize(1600, 900);
+        glcanvas.setPreferredSize(new Dimension(800, 900));
 
         //creating frame
+        JPanel extra = new JPanel();
+        extra.setPreferredSize(new Dimension(800, 900));
+
         final JFrame frame = new JFrame ("Triangle");
 
-        frame.getContentPane().add(glcanvas);
+        RSyntaxTextArea textArea = new RSyntaxTextArea(20, 60);
+        RTextScrollPane sp = new RTextScrollPane(textArea);
+
+        JSplitPane main_panel = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, glcanvas, sp);
+        main_panel.setPreferredSize(new Dimension(1600, 900));
+        main_panel.setResizeWeight(1.0);
+        main_panel.setResizeWeight(1.0);
+
+        Dimension minimumSize = new Dimension(300, 50);
+        glcanvas.setMinimumSize(minimumSize);
+        extra.setMinimumSize(minimumSize);
+
+        JLabel label = new JLabel();
+        label.setText("TEST");
+        extra.add(label);
+
+
+        frame.getContentPane().add(main_panel);
 
         final int[] lastMouseCoords = new int[2];
 
@@ -217,14 +249,7 @@ public class Main implements GLEventListener {
             public void mouseDragged(MouseEvent e) {
                 double deltaX = lastMouseCoords[0] - e.getX();
                 double deltaY = lastMouseCoords[1] - e.getY();
-                if (!e.isControlDown()) {
-                    double factor = .1;
-                    if (e.isShiftDown()) {
-                        factor = .02;
-                    }
-                    l.xAngle += factor * deltaX;
-                    l.yAngle += factor * deltaY;
-                } else {
+                if (e.isControlDown() || SwingUtilities.isMiddleMouseButton(e)) {
                     double cameraHeight = Math.abs(l.position.getY());
                     double factor = .001 * cameraHeight * 1.4;
                     if (e.isShiftDown()) {
@@ -236,6 +261,13 @@ public class Main implements GLEventListener {
                             0,
                             Math.sin(angle) * deltaX + Math.cos(angle) * deltaY
                     ).scalarMultiply(factor));
+                } else {
+                    double factor = .1;
+                    if (e.isShiftDown()) {
+                        factor = .02;
+                    }
+                    l.xAngle += factor * deltaX;
+                    l.yAngle += factor * deltaY;
                 }
                 lastMouseCoords[0] = e.getX();
                 lastMouseCoords[1] = e.getY();
@@ -317,6 +349,8 @@ public class Main implements GLEventListener {
 
                     if (e.isShiftDown()) {
                         factor = 0.03;
+                    } else if (e.isAltDown()) {
+                        factor = 2;
                     }
 
                     RealMatrix rotationXAxis = Util.createRotationMatrix(l.xAngle / 180 * Math.PI, Vector3D.PLUS_J);
@@ -360,7 +394,8 @@ public class Main implements GLEventListener {
             }
         });
 
-        frame.setSize(frame.getContentPane().getPreferredSize());
+        Dimension frameSize = frame.getContentPane().getPreferredSize();
+        frame.setSize(frameSize);
         frame.setVisible(true);
         frame.requestFocus();
 

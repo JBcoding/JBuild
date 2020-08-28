@@ -1,7 +1,7 @@
 grammar Building;
 
 
-program : (assignment SEMICOLON)*  plotDecl shapeDeclaration*;
+program : (assignment SEMICOLON)*  plotDecl shapeDeclaration* EOF;
 
 plotDecl : 'plot' arguments '->' NAME;
 
@@ -60,6 +60,8 @@ value : 'true' #valTrue
       | VARIABLE #valVariable;
 
 AXIS : [xyzXYZ];
+LINE_COMMENT: '//' ~[\r\n]* -> skip;
+BLOCK_COMMENT: '/*' .*? '*/' -> skip;
 LPAREN : '(';
 RPAREN : ')';
 LBRACE : '{';
