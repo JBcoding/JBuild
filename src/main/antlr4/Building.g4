@@ -1,0 +1,85 @@
+grammar Building;
+
+
+program : (assignment SEMICOLON)*  plotDecl shapeDeclaration*;
+
+plotDecl : 'plot' arguments '->' NAME;
+
+shapeDeclaration : NAME '->' polyStatements ;
+
+polyStatements : polyCommand SEMICOLON polyStatements #polyStatementsMultiple
+               | polyCommand SEMICOLON #polyStatementSingle
+               | polyFinalCommand #polyStatementFinal;
+
+polyCommand : simpleCommand arguments #polyCommandSimple
+            | assignment #polyCommandAssignment;
+
+
+simpleCommand : 'color' | 'translate' | 'translateG' | 'rotateX' | 'rotateY' | 'rotateZ' | 'rotatePX' | 'rotatePY' | 'rotatePZ' | 'scale' | 'polygon';
+
+assignment : VARIABLE ASSIGN expression;
+
+polyFinalCommand : NAME #polyCommandName
+                 | extrudeCommand #polyExtrudeCommand
+                 | splitCommand #polySplitCommand
+                 | ifCommand #polyIfCommand;
+
+extrudeCommand : 'extrude' arguments #extrudeSimple
+               | 'extrude' arguments LBRACE faceDecl (COMMA faceDecl)* RBRACE #extrudeFull;
+
+
+faceDecl : FACE COLON enclosedPolystatements;
+
+enclosedPolystatements : polyStatements | NAME;
+
+splitCommand : 'split' LPAREN AXIS RPAREN LBRACE splitDecl (COMMA splitDecl)*  RBRACE splitRepeating?;
+
+splitRepeating : ASTERIX;
+
+splitDecl : expression COLON enclosedPolystatements;
+
+arguments : LPAREN expression (COMMA expression)* RPAREN;
+
+ifCommand : 'if' LPAREN expression RPAREN LBRACE polyStatements RBRACE LBRACE polyStatements RBRACE;
+
+expression : LPAREN expression RPAREN #expressionPar
+           | expression op=(ASTERIX | DIVIDE | PERCENTAGE) expression #expressionMulDivMod
+           | expression op=(PLUS | MINUS) expression #expressionAddSub
+           | expression op=(EQUALS | NOT_EQUALS) expression #expressionEqNeq
+           | LPAREN expression COMMA expression RPAREN #expressionPair
+           | value #expressionVal
+           | VARIABLE arguments #expressionFunctionCall;
+
+
+value : 'true' #valTrue
+      | 'false' #valFalse
+      | NUMBER #valNumber
+      | STRING #valString
+      | NUMBER PERCENTAGE #valPercentage
+      | TILDE NUMBER #valFraction
+      | VARIABLE #valVariable;
+
+AXIS : [xyzXYZ];
+LPAREN : '(';
+RPAREN : ')';
+LBRACE : '{';
+TILDE: '~';
+RBRACE : '}';
+PERCENTAGE : '%';
+COMMA : ',';
+NUMBER : '-'?('0'|[1-9][0-9]*|[0-9]+DOT[0-9]+);
+FACE : 'TOP'|'BOTTOM'|'SIDE';
+ASTERIX: '*';
+COLON: ':';
+DOT : '.';
+SEMICOLON : ';';
+NAME : [A-Z][a-zA-Z0-9_]*;
+VARIABLE : [a-z_][a-zA-Z0-9_]*;
+WS : (' ' | '\t' | '\n' )+ -> channel(HIDDEN);
+STRING : '"' ('\\' ["\\] | ~["\\\r\n])* '"' ;
+PLUS : '+';
+MINUS : '-';
+DIVIDE : '/';
+EQUALS : '==';
+NOT_EQUALS : '!=';
+ASSIGN : ':=';
