@@ -1,3 +1,5 @@
+package renderer;
+
 import AST.*;
 import javafx.util.Pair;
 import org.apache.commons.math3.geometry.euclidean.threed.Vector3D;

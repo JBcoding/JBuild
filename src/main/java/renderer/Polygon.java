@@ -1,3 +1,5 @@
+package renderer;
+
 import com.jogamp.opengl.GL2;
 import org.apache.commons.math3.geometry.euclidean.threed.Vector3D;
 import org.apache.commons.math3.geometry.euclidean.twod.Vector2D;
@@ -108,9 +110,9 @@ public class Polygon extends Shape {
 
         gl.glEnd();
 
-        //Util.drawLine(gl, p1, p2);
-        //Util.drawLine(gl, p2, p3);
-        //Util.drawLine(gl, p3, p1);
+        //renderer.Util.drawLine(gl, p1, p2);
+        //renderer.Util.drawLine(gl, p2, p3);
+        //renderer.Util.drawLine(gl, p3, p1);
     }
 
     public void drawAndSplitTriangles(GL2 gl, Vector3D p1, Vector3D p2, Vector3D p3, Vector3D lightNormal) {

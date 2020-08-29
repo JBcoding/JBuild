@@ -1,3 +1,5 @@
+package renderer;
+
 import AST.*;
 import building.antlr.BuildingBaseVisitor;
 import building.antlr.BuildingLexer;
@@ -19,6 +21,7 @@ public class Building {
     private double rotationAngle;
     private Vector3D rotationTranslationDiff;
     private Vector3D translation;
+    private String filePath;
 
     private BoundingBox boundingBox;
 
@@ -45,6 +48,10 @@ public class Building {
         this.boundingBox = new BoundingBox(min, max);
     }
 
+    public String getFilePath() {
+        return filePath;
+    }
+
     public static Building buildFromFile(File file) throws IOException {
         InputStream stream = new FileInputStream(file);
         BuildingLexer lexer = new BuildingLexer(CharStreams.fromStream(stream, StandardCharsets.UTF_8));
@@ -63,7 +70,9 @@ public class Building {
         BuildingBaseVisitor<AST> ASTBuilder = new BuildAstVisitor();
         AST ast = ASTBuilder.visitProgram(unit);
 
-        return new Building(ast);
+        Building b = new Building(ast);
+        b.filePath = file.getAbsolutePath();
+        return b;
     }
 
     public void draw(GL2 gl, boolean highlighted, Vector3D position) {
