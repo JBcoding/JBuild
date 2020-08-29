@@ -5,7 +5,6 @@ import building.antlr.BuildingParser;
 import org.antlr.v4.runtime.tree.ParseTree;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 
@@ -195,10 +194,6 @@ public class BuildAstVisitor extends BuildingBaseVisitor<AST> {
 
         for (BuildingParser.SplitDeclContext childCtx : ctx.splitDecl()) {
             splits.add((SplitDeclarationNode) childCtx.accept(this));
-        }
-
-        if (node.getAxis() == Axis.Y) {
-            Collections.reverse(splits);
         }
 
         node.setSplits(splits);
