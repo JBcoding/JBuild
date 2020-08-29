@@ -1,5 +1,9 @@
 package editor;
 
+import building.antlr.BuildingLexer;
+import building.antlr.BuildingParser;
+import org.antlr.v4.runtime.CharStreams;
+import org.antlr.v4.runtime.CommonTokenStream;
 import org.apache.commons.math3.geometry.euclidean.threed.Vector3D;
 import org.fife.ui.rsyntaxtextarea.RSyntaxTextArea;
 import org.fife.ui.rsyntaxtextarea.Theme;
@@ -14,17 +18,17 @@ import java.awt.event.ActionListener;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
 
 public class MainWindowFrame extends JFrame {
-    private RSyntaxTextArea textEditor;
+    private FileEditorPanel fileEditor;
     private FileTreePanel fileTree;
     private RendererPanel renderer;
     private BuildingUpdater buildingUpdater;
     private Project project;
-    private File activeFile;
 
     public MainWindowFrame() {
         super("JBuild");
@@ -78,22 +82,7 @@ public class MainWindowFrame extends JFrame {
         }
     }
 
-    private void editFile(File f) {
-        BufferedReader r;
-        try {
 
-            r = new BufferedReader(new FileReader(f));
-            textEditor.read(r, null);
-            r.close();
-            textEditor.setCaretPosition(0);
-            textEditor.discardAllEdits();
-            this.activeFile = f;
-        } catch (RuntimeException re) {
-            throw re; // FindBugs
-        } catch (Exception e) { // Never happens
-            textEditor.setText("Type here to see syntax highlighting");
-        }
-    }
 
     private void setupPanes() {
         buildingUpdater = new BuildingUpdater();
@@ -107,31 +96,11 @@ public class MainWindowFrame extends JFrame {
             }
         });
 
-        textEditor = new RSyntaxTextArea(20, 60);
-        Theme theme = null;
-        try {
-            theme = Theme.load(getClass().getResourceAsStream(
-                    "/org/fife/ui/rsyntaxtextarea/themes/monokai.xml"));
-            theme.apply(textEditor);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        RTextScrollPane sp = new RTextScrollPane(textEditor);
-        textEditor.addKeyListener(new KeyAdapter() {
+        fileEditor = new FileEditorPanel();
+        fileEditor.addFileChangedListener(new FileChangedListener() {
             @Override
-            public void keyPressed(KeyEvent e) {
-                if (e.getExtendedKeyCode() == 83 && e.isControlDown()) {
-                    // SAVE
-                    try {
-                        if (activeFile == null) return;
-                        Files.write(activeFile.toPath(), textEditor.getText().getBytes());
-                        //PrintWriter out = new PrintWriter(activeFile);
-                        //out.print(textEditor.getText());
-                        redrawBuildings();
-                    } catch (Exception ex) {
-                        ex.printStackTrace();
-                    }
-                }
+            public void fileChanged(File file, FileChangeType type) {
+                redrawBuildings();
             }
         });
 
@@ -140,7 +109,7 @@ public class MainWindowFrame extends JFrame {
             @Override
             public void fileChanged(File file, FileChangeType type) {
                 if (type != FileChangeType.SELECT) return;
-                editFile(file);
+                fileEditor.editFile(file);
             }
         });
 
@@ -155,7 +124,7 @@ public class MainWindowFrame extends JFrame {
 
         fileTree.setMinimumSize(new Dimension(200, 200));
 
-        JSplitPane rightPanel = new JSplitPane(JSplitPane.VERTICAL_SPLIT, fileTree, sp);
+        JSplitPane rightPanel = new JSplitPane(JSplitPane.VERTICAL_SPLIT, fileTree, fileEditor);
 
         JSplitPane main_panel = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, renderer, rightPanel);
         main_panel.setPreferredSize(new Dimension(1600, 900));
@@ -170,6 +139,7 @@ public class MainWindowFrame extends JFrame {
             buildingUpdater.clear();
             for (BuildingInformation bi : project.getBuildings()) {
                     Building b = Building.buildFromFile(new File(bi.getFilePath()));
+                    if (b == null) continue;
                     b.setRotationAngle(bi.getRotation());
                     b.setTranslation(new Vector3D(bi.translation));
                     buildingUpdater.addHash(b, bi);

@@ -362,14 +362,14 @@ public class RendererPanel extends JPanel implements GLEventListener {
 
         gl.glLineWidth(2);
         for (int i = -100; i <= 100; i++) {
-            gl.glColor3d( 1, 0, 0);
+            gl.glColor3d( 0.1, 0, 0);
             gl.glBegin(GL2.GL_LINES);
             gl.glVertex3d(-100, 0, i);
             gl.glVertex3d(100, 0, i);
             gl.glEnd();
 
 
-            gl.glColor3d(0, 0, 1);
+            gl.glColor3d( 0, 0, 0.1);
             gl.glBegin(GL2.GL_LINES);
             gl.glVertex3d(i, 0, -100);
             gl.glVertex3d(i, 0, 100);

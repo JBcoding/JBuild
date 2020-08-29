@@ -1,5 +1,5 @@
 package editor;
 
 public enum FileChangeType {
-    ADD, SELECT
+    ADD, SELECT, SAVED
 }
