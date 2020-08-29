@@ -2,6 +2,7 @@ import com.jogamp.opengl.*;
 import com.jogamp.opengl.awt.GLCanvas;
 import com.jogamp.opengl.glu.GLU;
 import editor.MainWindowFrame;
+import javafx.util.Pair;
 import org.apache.commons.math3.geometry.euclidean.threed.Vector3D;
 import org.apache.commons.math3.linear.RealMatrix;
 import org.fife.ui.rsyntaxtextarea.RSyntaxTextArea;
@@ -31,6 +32,13 @@ public class Main implements GLEventListener {
     private boolean debug = false;
 
     private Building selectedBuilding = null;
+
+    private boolean draggingModeMove = false;
+    private Vector3D originalPlaneIntersectionPoint = null;
+    private Vector3D originalBuildingTranslation = null;
+
+    private boolean draggingModeRotate = false;
+    private double originalBuildingRotation = 0;
 
     GLCanvas canvas = null;
 
@@ -161,10 +169,24 @@ public class Main implements GLEventListener {
         this.buildings.add(building);
     }
 
+    public Pair<Vector3D, Vector3D> getClickRay(int pixelX, int pixelY) {
+        double deltaX = (pixelX / width - .5) * fovX;
+        double deltaY = (pixelY / height - .5) * fovY;
+
+        RealMatrix rotationXAxis = Util.createRotationMatrix((xAngle + deltaX) / 180 * Math.PI, Vector3D.PLUS_J);
+        RealMatrix rotationYAxis = Util.createRotationMatrix((yAngle + deltaY) / 180 * Math.PI, Vector3D.PLUS_I);
+        RealMatrix rotation = rotationYAxis.multiply(rotationXAxis);
+
+        Vector3D direction = Util.preMultiplyVector3dMatrix(Vector3D.MINUS_K, rotation);
+        Vector3D startPoint = position;
+        return new Pair<>(startPoint, direction);
+    }
+
     public static void main(String[] args) throws IOException, ClassNotFoundException, UnsupportedLookAndFeelException, InstantiationException, IllegalAccessException {
         UIManager.setLookAndFeel(
                 UIManager.getSystemLookAndFeelClassName());
         File file = new File("/home/mathias/Desktop/building.jbuild");
+
         //getting the capabilities object of GL2 profile
         final GLProfile profile = GLProfile.get(GLProfile.GL2);
         GLCapabilities capabilities = new GLCapabilities(profile);
@@ -253,7 +275,75 @@ public class Main implements GLEventListener {
             public void mouseDragged(MouseEvent e) {
                 double deltaX = lastMouseCoords[0] - e.getX();
                 double deltaY = lastMouseCoords[1] - e.getY();
-                if (e.isControlDown() || SwingUtilities.isMiddleMouseButton(e)) {
+
+                if (l.draggingModeMove) {
+                    Pair<Vector3D, Vector3D> ray = l.getClickRay(e.getX(), e.getY());
+                    Vector3D direction = ray.getValue();
+                    Vector3D startPoint = ray.getKey();
+
+                    Vector3D currentPlaneIntersectionPoint = Util.getIntersectionPoint(startPoint, direction, Vector3D.ZERO, Vector3D.PLUS_I, Vector3D.PLUS_K);
+
+                    double deltaXPlane = l.originalPlaneIntersectionPoint.getX() - currentPlaneIntersectionPoint.getX();
+                    double deltaYPlane = l.originalPlaneIntersectionPoint.getZ() - currentPlaneIntersectionPoint.getZ();
+
+                    if (!e.isShiftDown()) {
+                        deltaXPlane = (int) deltaXPlane;
+                        deltaYPlane = (int) deltaYPlane;
+                    } else {
+                        deltaXPlane *= 20;
+                        deltaYPlane *= 20;
+                        deltaXPlane = (int) deltaXPlane;
+                        deltaYPlane = (int) deltaYPlane;
+                        deltaXPlane /= 20;
+                        deltaYPlane /= 20;
+                    }
+
+                    Vector3D newTranslation = l.originalBuildingTranslation.add(new Vector3D(-deltaXPlane, 0, -deltaYPlane));
+                    l.selectedBuilding.setTranslation(newTranslation);
+
+                } else if (l.draggingModeRotate) {
+                    Pair<Vector3D, Vector3D> ray = l.getClickRay(e.getX(), e.getY());
+                    Vector3D direction = ray.getValue();
+                    Vector3D startPoint = ray.getKey();
+
+                    Vector3D currentPlaneIntersectionPoint = Util.getIntersectionPoint(startPoint, direction, Vector3D.ZERO, Vector3D.PLUS_I, Vector3D.PLUS_K);
+
+                    currentPlaneIntersectionPoint = currentPlaneIntersectionPoint.subtract(l.selectedBuilding.getCentrumOnPlane());
+                    Vector3D originalPlaneIntersectionPoint = l.originalPlaneIntersectionPoint.subtract(l.selectedBuilding.getCentrumOnPlane());
+
+                    double angleOriginal = Math.atan2(
+                            currentPlaneIntersectionPoint.getZ(),
+                            currentPlaneIntersectionPoint.getX());
+
+                    double angleNew = Math.atan2(
+                            originalPlaneIntersectionPoint.getZ(),
+                            originalPlaneIntersectionPoint.getX());
+
+                    double deltaAngle = angleNew - angleOriginal;
+
+                    if (!e.isShiftDown()) {
+                        deltaAngle /= Math.PI;
+                        deltaAngle *= 16;
+                        deltaAngle = (int) deltaAngle;
+                        deltaAngle /= 16;
+                        deltaAngle *= Math.PI;
+                    } else {
+                        deltaAngle /= Math.PI;
+                        deltaAngle *= 128;
+                        deltaAngle = (int) deltaAngle;
+                        deltaAngle /= 128;
+                        deltaAngle *= Math.PI;
+                    }
+
+                    l.selectedBuilding.setRotationAngle(l.originalBuildingRotation + deltaAngle);
+                } else if (!e.isControlDown()) {
+                    double factor = .1;
+                    if (e.isShiftDown()) {
+                        factor = .02;
+                    }
+                    l.xAngle += factor * deltaX;
+                    l.yAngle += factor * deltaY;
+                } else {
                     double cameraHeight = Math.abs(l.position.getY());
                     double factor = .001 * cameraHeight * 1.4;
                     if (e.isShiftDown()) {
@@ -265,13 +355,6 @@ public class Main implements GLEventListener {
                             0,
                             Math.sin(angle) * deltaX + Math.cos(angle) * deltaY
                     ).scalarMultiply(factor));
-                } else {
-                    double factor = .1;
-                    if (e.isShiftDown()) {
-                        factor = .02;
-                    }
-                    l.xAngle += factor * deltaX;
-                    l.yAngle += factor * deltaY;
                 }
                 lastMouseCoords[0] = e.getX();
                 lastMouseCoords[1] = e.getY();
@@ -287,25 +370,11 @@ public class Main implements GLEventListener {
         glcanvas.addMouseListener(new MouseListener() {
             @Override
             public void mouseClicked(MouseEvent e) {
-                double deltaX = (e.getX() / l.width - .5) * l.fovX;
-                double deltaY = (e.getY() / l.height - .5) * l.fovY;
+                Pair<Vector3D, Vector3D> ray = l.getClickRay(e.getX(), e.getY());
+                Vector3D direction = ray.getValue();
+                Vector3D startPoint = ray.getKey();
 
-                RealMatrix rotationXAxis = Util.createRotationMatrix((l.xAngle + deltaX) / 180 * Math.PI, Vector3D.PLUS_J);
-                RealMatrix rotationYAxis = Util.createRotationMatrix((l.yAngle + deltaY) / 180 * Math.PI, Vector3D.PLUS_I);
-                RealMatrix rotation = rotationYAxis.multiply(rotationXAxis);
-
-                Vector3D direction = Util.preMultiplyVector3dMatrix(Vector3D.MINUS_K, rotation);
-                Vector3D startPoint = l.position;
-
-                Building closestBuilding = null;
-                double closestDistance = Double.MAX_VALUE;
-                for (Building building : l.buildings) {
-                    double distance = building.getClosestHit(startPoint, direction);
-                    if (distance < closestDistance) {
-                        closestDistance = distance;
-                        closestBuilding = building;
-                    }
-                }
+                Building closestBuilding = l.getBuildingFromRay(startPoint, direction);
                 Building oldSelected = l.selectedBuilding;
                 if (closestBuilding != null) {
                     l.selectedBuilding = closestBuilding;
@@ -319,13 +388,30 @@ public class Main implements GLEventListener {
 
             @Override
             public void mousePressed(MouseEvent e) {
+                Pair<Vector3D, Vector3D> ray = l.getClickRay(e.getX(), e.getY());
+                Vector3D direction = ray.getValue();
+                Vector3D startPoint = ray.getKey();
+
+                Building closestBuilding = l.getBuildingFromRay(startPoint, direction);
+
+                l.originalPlaneIntersectionPoint = Util.getIntersectionPoint(startPoint, direction, Vector3D.ZERO, Vector3D.PLUS_I, Vector3D.PLUS_K);
+
+                if (closestBuilding == l.selectedBuilding && l.selectedBuilding != null) {
+                    l.draggingModeMove = true;
+                    l.originalBuildingTranslation = closestBuilding.getTranslation();
+                } else if (l.selectedBuilding != null && l.selectedBuilding.isHittingRotationRing(startPoint, direction)) {
+                    l.draggingModeRotate = true;
+                    l.originalBuildingRotation = l.selectedBuilding.getRotationAngle();
+                }
+
                 lastMouseCoords[0] = e.getX();
                 lastMouseCoords[1] = e.getY();
             }
 
             @Override
             public void mouseReleased(MouseEvent e) {
-
+                l.draggingModeMove = false;
+                l.draggingModeRotate = false;
             }
 
             @Override
@@ -403,5 +489,18 @@ public class Main implements GLEventListener {
         frame.setVisible(true);
         frame.requestFocus();
 
+    }
+
+    private Building getBuildingFromRay(Vector3D startPoint, Vector3D direction) {
+        Building closestBuilding = null;
+        double closestDistance = Double.MAX_VALUE;
+        for (Building building : buildings) {
+            double distance = building.getClosestHit(startPoint, direction);
+            if (distance < closestDistance) {
+                closestDistance = distance;
+                closestBuilding = building;
+            }
+        }
+        return closestBuilding;
     }
 }
