@@ -1,6 +1,7 @@
 import com.jogamp.opengl.*;
 import com.jogamp.opengl.awt.GLCanvas;
 import com.jogamp.opengl.glu.GLU;
+import editor.MainWindowFrame;
 import org.apache.commons.math3.geometry.euclidean.threed.Vector3D;
 import org.apache.commons.math3.linear.RealMatrix;
 import org.fife.ui.rsyntaxtextarea.RSyntaxTextArea;
@@ -160,7 +161,9 @@ public class Main implements GLEventListener {
         this.buildings.add(building);
     }
 
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) throws IOException, ClassNotFoundException, UnsupportedLookAndFeelException, InstantiationException, IllegalAccessException {
+        UIManager.setLookAndFeel(
+                UIManager.getSystemLookAndFeelClassName());
         File file = new File("/home/mathias/Desktop/building.jbuild");
         //getting the capabilities object of GL2 profile
         final GLProfile profile = GLProfile.get(GLProfile.GL2);
@@ -221,7 +224,8 @@ public class Main implements GLEventListener {
         JPanel extra = new JPanel();
         extra.setPreferredSize(new Dimension(800, 900));
 
-        final JFrame frame = new JFrame ("Triangle");
+        final JFrame frame = new MainWindowFrame();
+
 
         RSyntaxTextArea textArea = new RSyntaxTextArea(20, 60);
         RTextScrollPane sp = new RTextScrollPane(textArea);
@@ -240,7 +244,7 @@ public class Main implements GLEventListener {
         extra.add(label);
 
 
-        frame.getContentPane().add(main_panel);
+        //frame.getContentPane().add(main_panel);
 
         final int[] lastMouseCoords = new int[2];
 
