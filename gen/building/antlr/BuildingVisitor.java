@@ -1,4 +1,4 @@
-// Generated from /Users/madsbjoern/Documents/Git/JBuild/src/main/antlr4/Building.g4 by ANTLR 4.8
+// Generated from /Users/madsbjoern/Documents/Git/JBuild/src/main/antlr4/renderer.Building.g4 by ANTLR 4.8
 package building.antlr;
 import org.antlr.v4.runtime.tree.ParseTreeVisitor;
 

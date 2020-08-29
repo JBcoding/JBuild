@@ -1,4 +1,4 @@
-// Generated from /home/mathias/gitrepos/jbuild/src/main/antlr4/Building.g4 by ANTLR 4.8
+// Generated from /home/mathias/gitrepos/jbuild/src/main/antlr4/renderer.Building.g4 by ANTLR 4.8
 import org.antlr.v4.runtime.atn.*;
 import org.antlr.v4.runtime.dfa.DFA;
 import org.antlr.v4.runtime.*;
@@ -93,7 +93,7 @@ public class BuildingParser extends Parser {
 	}
 
 	@Override
-	public String getGrammarFileName() { return "Building.g4"; }
+	public String getGrammarFileName() { return "renderer.Building.g4"; }
 
 	@Override
 	public String[] getRuleNames() { return ruleNames; }
