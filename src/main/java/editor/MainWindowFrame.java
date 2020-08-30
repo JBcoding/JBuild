@@ -60,6 +60,8 @@ public class MainWindowFrame extends JFrame {
         if (!file.exists()) {
             return;
         }
+        renderer.clearAllBuildings();
+        EditorProperties.getInstance().set("recent_project", file.getAbsolutePath());
         try {
             project = Project.fromDirectory(file);
             buildingUpdater.setProject(project);
@@ -77,6 +79,7 @@ public class MainWindowFrame extends JFrame {
                 }
 
             }
+            renderer.forceRedraw();
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -159,16 +162,39 @@ public class MainWindowFrame extends JFrame {
         fileMenu.getPopupMenu().setLightWeightPopupEnabled(false);
         fileMenu.setMnemonic(KeyEvent.VK_F);
 
+
+        final Component self = this;
+
         JMenuItem newProject = new JMenuItem("New");
         newProject.setMnemonic(KeyEvent.VK_N);
         newProject.setToolTipText("New project");
-        newProject.addActionListener((event) -> System.exit(0));
+        newProject.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                JFileChooser chooser = new JFileChooser();
+                chooser.setCurrentDirectory(FileSystemView.getFileSystemView().getHomeDirectory());
+                chooser.setDialogTitle("Select directory");
+                chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+
+                // disable the "All files" option.
+                chooser.setAcceptAllFileFilterUsed(false);
+
+                if (chooser.showOpenDialog(self) == JFileChooser.APPROVE_OPTION) {
+                    File f = chooser.getSelectedFile();
+                    String fileName = JOptionPane.showInputDialog("Please enter name of file");
+                    if (fileName == null || fileName.isEmpty()) return;
+                    f = new File(f, fileName);
+                    if (f.exists()) return;
+                    f.mkdir();
+                    openProject(f);
+                }
+            }
+        });
         fileMenu.add(newProject);
 
         JMenuItem open = new JMenuItem("Open");
         open.setMnemonic(KeyEvent.VK_O);
         open.setToolTipText("Open project");
-        final Component self = this;
         open.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
