@@ -219,11 +219,6 @@ public class Polygon extends Shape {
 
     @Override
     public List<Shape> split(Axis2D axis, UnitLength[] splits, boolean repeat, boolean includePartialSections) {
-        boolean debug = false;
-        if (splits.length == 3 && splits[1].getAmount() == 0.8 && splits[1].getUnit() == Unit.METER && axis == Axis2D.Y) {
-            System.out.println("s");
-            debug = true;
-        }
         if (axis == Axis2D.Y) {
             // code below is made for splits in x axis, so just swap axis for y
             for (int i = 0; i < points.size(); i++) {
@@ -322,10 +317,6 @@ public class Polygon extends Shape {
             if (newFace.points.stream().mapToDouble(Vector3D::getX).max().getAsDouble() < 0.000001 ||
                 newFace.points.stream().mapToDouble(Vector3D::getY).max().getAsDouble() < 0.000001) {
                 continue;
-            }
-
-            if (debug) {
-                System.out.println(newFace.points);
             }
 
             newFaces.add(newFace);

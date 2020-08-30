@@ -233,17 +233,11 @@ public class Building {
     public void setRotationAngle(double rotationAngle) {
         this.rotationAngle = rotationAngle;
 
-        Vector3D midPointBefore = new Vector3D(
-                (boundingBox.getMax().getX() - boundingBox.getMin().getX()) / 2,
-                (boundingBox.getMax().getY() - boundingBox.getMin().getY()) / 2,
-                (boundingBox.getMax().getZ() - boundingBox.getMin().getZ() / 2)
-        );
+        Vector3D midPointBefore = boundingBox.getMax().add(boundingBox.getMin()).scalarMultiply(.5);
 
         Vector3D midPointAfter = Util.preMultiplyVector3dMatrix(midPointBefore, Util.createRotationMatrix(rotationAngle, Vector3D.PLUS_J));
 
-        this.rotationTranslationDiff = midPointAfter.subtract(midPointBefore);
-
-        this.rotationTranslationDiff = Util.preMultiplyVector3dMatrix(this.rotationTranslationDiff, Util.createRotationMatrix(Math.PI / 2, Vector3D.PLUS_J));
+        this.rotationTranslationDiff = midPointBefore.subtract(midPointAfter);
     }
 
     public Vector3D getCentrumOnPlane() {
