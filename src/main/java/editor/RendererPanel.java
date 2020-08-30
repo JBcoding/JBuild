@@ -6,6 +6,7 @@ import com.jogamp.opengl.glu.GLU;
 import com.jogamp.opengl.util.awt.TextRenderer;
 import javafx.util.Pair;
 import org.apache.commons.math3.geometry.euclidean.threed.Vector3D;
+import org.apache.commons.math3.geometry.euclidean.twod.Vector2D;
 import org.apache.commons.math3.linear.RealMatrix;
 import renderer.Building;
 import renderer.Util;
@@ -399,7 +400,6 @@ public class RendererPanel extends JPanel implements GLEventListener {
         gl.glTranslated(-position.getX(), -position.getY(), -position.getZ());
 
 
-
         // add the ground
         gl.glColor3d(185 / 255.0, 180 / 255.0, 171 / 255.0);
         gl.glBegin(GL2.GL_POLYGON);
@@ -482,6 +482,79 @@ public class RendererPanel extends JPanel implements GLEventListener {
 
         long deltaTime = System.nanoTime() - timeStart;
         lastFrameRenderTimes[(lastFrameRenderTimesIndex++) % lastFrameRenderTimes.length] = deltaTime;
+
+        // Restore original (no-) translation and rotation
+        gl.glTranslated(position.getX(), position.getY(), position.getZ());
+        gl.glRotated(-xAngle, 0.0f, 1.0f, 0.0f);
+        gl.glRotated(-yAngle, 1.0f, 0.0f, 0.0f);
+
+        //renderCompass(gl);
+
+
+    }
+
+    private void renderCompass(GL2 gl) {
+        gl.glClear(GL2.GL_DEPTH_BUFFER_BIT);
+
+        // Render compass
+        gl.glColor3d(0, 0, 0);
+        gl.glLineWidth(4);
+        gl.glBegin(GL2.GL_POLYGON);
+        double outerRadius = 1;
+        double innerRadius = outerRadius * 0.9;
+        Vector2D center = new Vector2D(0, 0);
+        double x = center.getX(), y = center.getY();
+        int sections = 20;
+        gl.glVertex3d(x, y, -30);
+        for (int i = 0; i <= sections; i++) {
+            Vector2D newPoint = new Vector2D(
+                    x + (outerRadius * Math.cos(i / (double)sections * (Math.PI * 2))),
+                    y + (outerRadius * Math.sin(i / (double)sections * (Math.PI * 2)))
+            );
+            gl.glVertex3d(newPoint.getX(), newPoint.getY(), -30);
+        }
+        gl.glEnd();
+
+        gl.glClear(GL2.GL_DEPTH_BUFFER_BIT);
+        gl.glBegin(GL2.GL_POLYGON);
+        gl.glColor3d(0.9, 0.9, 0.9);
+        gl.glVertex3d(x, y, -30);
+        for (int i = 0; i <= sections; i++) {
+            Vector2D newPoint = new Vector2D(
+                    x + (innerRadius * Math.cos(i / (double)sections * (Math.PI * 2))),
+                    y + (innerRadius * Math.sin(i / (double)sections * (Math.PI * 2)))
+            );
+            gl.glVertex3d(newPoint.getX(), newPoint.getY(), -30);
+        }
+        gl.glEnd();
+
+        RealMatrix currentRotation = getCurrentRotationMatrix();
+        Vector3D xDirection = Util.preMultiplyVector3dMatrix(new Vector3D(1, 0, 0), currentRotation).scalarMultiply(innerRadius * 0.9);
+        Vector3D yDirection = Util.preMultiplyVector3dMatrix(new Vector3D(0, 1, 0), currentRotation).scalarMultiply(innerRadius * 0.9);
+        Vector3D zDirection = Util.preMultiplyVector3dMatrix(new Vector3D(0, 0, 1), currentRotation).scalarMultiply(innerRadius * 0.9);
+
+
+        // X
+        gl.glColor3d(1, 0, 0);
+        gl.glClear(GL2.GL_DEPTH_BUFFER_BIT);
+        gl.glBegin(GL2.GL_LINES);
+        gl.glVertex3d(x, y, -30);
+        gl.glVertex3d(x + xDirection.getX() , y + xDirection.getY(), -30 + xDirection.getZ());
+        gl.glEnd();
+
+        // Y
+        gl.glColor3d(0, 1, 0);
+        gl.glBegin(GL2.GL_LINES);
+        gl.glVertex3d(x, y, -30);
+        gl.glVertex3d(x + yDirection.getX() , y + yDirection.getY(), -30 + yDirection.getZ());
+        gl.glEnd();
+
+        // Z
+        gl.glColor3d(0, 0, 1);
+        gl.glBegin(GL2.GL_LINES);
+        gl.glVertex3d(x, y, -30);
+        gl.glVertex3d(x + zDirection.getX() , y + zDirection.getY(), -30 + zDirection.getZ());
+        gl.glEnd();
     }
 
     private int getFps() {
