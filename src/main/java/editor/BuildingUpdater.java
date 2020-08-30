@@ -1,18 +1,20 @@
 package editor;
 
+import com.google.common.collect.BiMap;
+import com.google.common.collect.HashBiMap;
 import renderer.Building;
 
 import java.util.HashMap;
 import java.util.Map;
 
 public class BuildingUpdater implements BuildingChangedListener {
-    Map<Building, BuildingInformation> map = new HashMap<>();
+    BiMap<Building, BuildingInformation> map = HashBiMap.create();
     Project project;
 
 
     public void setProject(Project p) {
         this.project = p;
-        map = new HashMap<>();
+        map = HashBiMap.create();
     }
 
     public void addHash(Building b, BuildingInformation bi) {
@@ -20,7 +22,7 @@ public class BuildingUpdater implements BuildingChangedListener {
     }
 
     public void clear() {
-        map = new HashMap<>();
+        map = HashBiMap.create();
     }
 
     @Override
@@ -53,11 +55,13 @@ public class BuildingUpdater implements BuildingChangedListener {
             BuildingInformation bi = map.get(building);
             bi.setRotation(building.getRotationAngle());
             bi.setTranslation(building.getTranslation().toArray());
+            bi.setSeed(building.getSeed());
         } else {
             BuildingInformation bi = new BuildingInformation();
             bi.setRotation(building.getRotationAngle());
             bi.setTranslation(building.getTranslation().toArray());
             bi.setFilePath(building.getFilePath());
+            bi.setSeed(building.getSeed());
             map.put(building, bi);
             project.getBuildings().add(bi);
         }

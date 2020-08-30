@@ -22,11 +22,18 @@ public class Building {
     private Vector3D rotationTranslationDiff;
     private Vector3D translation;
     private String filePath;
+    private long seed;
 
     private BoundingBox boundingBox;
 
     public Building(AST ast) {
         this((List<Shape>) ast.accept(new ShapeGeneratorVisitor()));
+        this.ast = ast;
+    }
+
+    public Building(AST ast, long seed) {
+        this((List<Shape>) ast.accept(new ShapeGeneratorVisitor(seed)));
+        this.seed = seed;
         this.ast = ast;
     }
 
@@ -48,11 +55,21 @@ public class Building {
         this.boundingBox = new BoundingBox(min, max);
     }
 
+    public long getSeed() {
+        return seed;
+    }
+
+
     public String getFilePath() {
         return filePath;
     }
 
     public static Building buildFromFile(File file) throws IOException {
+        return buildFromFile(file, System.nanoTime());
+    }
+
+
+        public static Building buildFromFile(File file, long seed) throws IOException {
         InputStream stream = new FileInputStream(file);
         BuildingLexer lexer = new BuildingLexer(CharStreams.fromStream(stream, StandardCharsets.UTF_8));
 
@@ -70,7 +87,7 @@ public class Building {
         BuildingBaseVisitor<AST> ASTBuilder = new BuildAstVisitor();
         AST ast = ASTBuilder.visitProgram(unit);
 
-        Building b = new Building(ast);
+        Building b = new Building(ast, seed);
         b.filePath = file.getAbsolutePath();
         return b;
     }

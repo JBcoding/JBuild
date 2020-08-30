@@ -15,6 +15,12 @@ public class ShapeGeneratorVisitor implements ASTVisitor<List<Shape>> {
     SymbolTable symbolTable = new SymbolTable();
     Random rnd = new Random();
 
+    public ShapeGeneratorVisitor() {
+    }
+
+    public ShapeGeneratorVisitor(long seed) {
+        this.rnd = new Random(seed);
+    }
 
     @Override
     public List<Shape> visit(SimpleCommandNode node) {

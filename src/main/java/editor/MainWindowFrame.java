@@ -47,7 +47,7 @@ public class MainWindowFrame extends JFrame {
             return;
         }
         try {
-            Building b = Building.buildFromFile(file);
+            Building b = Building.buildFromFile(file, System.nanoTime());
             buildingUpdater.buildingChanged(b, BuildingChangeType.MOVED);
             renderer.addBuilding(b);
             renderer.forceRedraw();
@@ -69,7 +69,7 @@ public class MainWindowFrame extends JFrame {
 
             for (BuildingInformation bi : project.getBuildings()) {
                 try {
-                    Building b = Building.buildFromFile(new File(bi.getFilePath()));
+                    Building b = Building.buildFromFile(new File(bi.getFilePath()), bi.getSeed());
                     b.setTranslation(new Vector3D(bi.translation));
                     b.setRotationAngle(bi.getRotation());
                     buildingUpdater.addHash(b, bi);
@@ -92,6 +92,17 @@ public class MainWindowFrame extends JFrame {
 
         renderer = new RendererPanel();
         renderer.addBuildingChangedListener(buildingUpdater);
+
+        renderer.addBuildingChangedListener(new BuildingChangedListener() {
+            @Override
+            public void buildingChanged(Building building, BuildingChangeType type) {
+                if (type == BuildingChangeType.REGENERATE_REQUESTED) {
+                    Building b = redrawBuilding(building);
+                    renderer.setSelectedBuilding(b);
+                }
+            }
+        });
+
         renderer.addBuildingChangedListener(new BuildingChangedListener() {
             @Override
             public void buildingChanged(Building building, BuildingChangeType type) {
@@ -99,11 +110,14 @@ public class MainWindowFrame extends JFrame {
             }
         });
 
+
+
         fileEditor = new FileEditorPanel();
         fileEditor.addFileChangedListener(new FileChangedListener() {
             @Override
             public void fileChanged(File file, FileChangeType type) {
-                redrawBuildings();
+                redrawFromFile(file);
+                renderer.forceRedraw();
             }
         });
 
@@ -136,12 +150,42 @@ public class MainWindowFrame extends JFrame {
         getContentPane().add(main_panel);
     }
 
+    private void redrawFromFile(File file) {
+        for (BuildingInformation bi : project.getBuildings()) {
+            if (file.getAbsolutePath().equals(bi.getFilePath())) {
+                Building b = buildingUpdater.map.inverse().get(bi);
+                redrawBuilding(b);
+            }
+        }
+    }
+
+    private Building redrawBuilding(Building b) {
+        try {
+            BuildingInformation bi = buildingUpdater.map.get(b);
+            bi.setSeed(System.nanoTime());
+            Building newBuilding = Building.buildFromFile(new File(bi.getFilePath()), bi.getSeed());
+            if (b == null) return null;
+            buildingUpdater.map.remove(b);
+            renderer.buildings.remove(b);
+            buildingUpdater.addHash(newBuilding, bi);
+            newBuilding.setRotationAngle(bi.getRotation());
+            newBuilding.setTranslation(new Vector3D(bi.translation));
+            renderer.addBuilding(newBuilding);
+            project.saveToFile();
+            return newBuilding;
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
     private void redrawBuildings() {
         try {
             renderer.clearAllBuildings();
             buildingUpdater.clear();
             for (BuildingInformation bi : project.getBuildings()) {
-                    Building b = Building.buildFromFile(new File(bi.getFilePath()));
+                    Building b = Building.buildFromFile(new File(bi.getFilePath()), bi.getSeed());
                     if (b == null) continue;
                     b.setRotationAngle(bi.getRotation());
                     b.setTranslation(new Vector3D(bi.translation));

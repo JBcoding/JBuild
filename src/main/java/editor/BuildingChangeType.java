@@ -1,5 +1,5 @@
 package editor;
 
 public enum BuildingChangeType {
-    MOVED, DELETED
+    MOVED, DELETED, REGENERATE_REQUESTED
 }

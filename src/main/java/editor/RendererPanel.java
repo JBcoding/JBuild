@@ -67,6 +67,14 @@ public class RendererPanel extends JPanel implements GLEventListener {
         buildingChangedListeners.add(listener);
     }
 
+    public Building getSelectedBuilding() {
+        return selectedBuilding;
+    }
+
+    public void setSelectedBuilding(Building selectedBuilding) {
+        this.selectedBuilding = selectedBuilding;
+    }
+
     private void setupCanvasListeners(GLCanvas glcanvas) {
         final int[] lastMouseCoords = new int[2];
 
@@ -290,6 +298,12 @@ public class RendererPanel extends JPanel implements GLEventListener {
                         selectedBuilding = null;
                         draggingModeMove = false;
                         draggingModeRotate = false;
+                    }
+                }
+
+                if (e.getExtendedKeyCode() == 71) { // G
+                    if (selectedBuilding != null) {
+                        emitBuildingEvent(selectedBuilding, BuildingChangeType.REGENERATE_REQUESTED);
                     }
                 }
             }

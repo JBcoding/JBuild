@@ -4,6 +4,15 @@ public class BuildingInformation {
     private String filePath;
     double[] translation;
     double rotation;
+    long seed = 0;
+
+    public long getSeed() {
+        return seed;
+    }
+
+    public void setSeed(long seed) {
+        this.seed = seed;
+    }
 
     public String getFilePath() {
         return filePath;
