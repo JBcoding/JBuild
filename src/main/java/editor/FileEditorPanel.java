@@ -68,8 +68,7 @@ public class FileEditorPanel extends JPanel {
         textEditor.addKeyListener(new KeyAdapter() {
             @Override
             public void keyPressed(KeyEvent e) {
-                if (e.getExtendedKeyCode() == 83 && e.isControlDown()) {
-
+                if (e.getKeyCode() == 83 && e.isControlDown()) {
                     BuildingLexer lexer = new BuildingLexer(CharStreams.fromString(textEditor.getText()));
                     CommonTokenStream tokenStream = new CommonTokenStream(lexer);
                     BuildingParser parser = new BuildingParser(tokenStream);

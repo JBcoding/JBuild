@@ -92,16 +92,18 @@ public class Building {
         return b;
     }
 
-    public void draw(GL2 gl, boolean highlighted, Vector3D position) {
+    public void draw(GL2 gl, boolean highlighted, boolean debug, Vector3D position) {
         gl.glTranslated(translation.getX(), translation.getY(), translation.getZ());
         gl.glRotated(rotationAngle * 180 / Math.PI, 0.0f, 1.0f, 0.0f);
         gl.glTranslated(-rotationTranslationDiff.getX(), -rotationTranslationDiff.getY(), -rotationTranslationDiff.getZ());
         for (Shape s : shapes) {
-            s.draw(gl, highlighted, Util.preMultiplyVector3dMatrix(position.subtract(translation), Util.createRotationMatrix(rotationAngle, Vector3D.PLUS_J)).add(rotationTranslationDiff));
+            s.draw(gl, highlighted, debug, Util.preMultiplyVector3dMatrix(position.subtract(translation), Util.createRotationMatrix(rotationAngle, Vector3D.PLUS_J)).add(rotationTranslationDiff));
         }
         if (highlighted) {
-            drawBoundingBox(gl);
             drawRotationRing(gl);
+        }
+        if (debug || highlighted) {
+            drawBoundingBox(gl);
         }
 
         gl.glTranslated(rotationTranslationDiff.getX(), rotationTranslationDiff.getY(), rotationTranslationDiff.getZ());

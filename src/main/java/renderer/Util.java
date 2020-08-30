@@ -42,10 +42,10 @@ public class Util {
             double x = (b2 * c1 - b1 * c2) / determinant;
             double y = (a1 * c2 - a2 * c1) / determinant;
             double epsilon = 0.0000001d;
-            if (Math.min(a.getX(), b.getX()) - epsilon <= x && x <= Math.max(a.getX(), b.getX() + epsilon) &&
-                Math.min(a.getY(), b.getY()) - epsilon <= y && y <= Math.max(a.getY(), b.getY() + epsilon) &&
-                Math.min(c.getX(), d.getX()) - epsilon <= x && x <= Math.max(c.getX(), d.getX() + epsilon) &&
-                Math.min(c.getY(), d.getY()) - epsilon <= y && y <= Math.max(c.getY(), d.getY() + epsilon)) {
+            if (Math.min(a.getX(), b.getX()) - epsilon <= x && x <= Math.max(a.getX(), b.getX()) + epsilon &&
+                Math.min(a.getY(), b.getY()) - epsilon <= y && y <= Math.max(a.getY(), b.getY()) + epsilon &&
+                Math.min(c.getX(), d.getX()) - epsilon <= x && x <= Math.max(c.getX(), d.getX()) + epsilon &&
+                Math.min(c.getY(), d.getY()) - epsilon <= y && y <= Math.max(c.getY(), d.getY()) + epsilon) {
                 return new Vector3D(x, y, 0);
             }
         }
@@ -76,6 +76,8 @@ public class Util {
         t = -A / B
         If B equals 0, the the line is parallel to the plane
         */
+        direction = direction.normalize();
+
         Vector3D normalVector = (min.subtract(p).crossProduct(max.subtract(p)));
         double B = normalVector.dotProduct(direction);
         if (B == 0) { // Line is parallel to the plane
@@ -90,6 +92,7 @@ public class Util {
     }
 
     public static double getIntersectionDistance(Vector3D startPoint, Vector3D direction, Vector3D min, Vector3D max, Vector3D p, Axis3D axisToDiscard) {
+        direction = direction.normalize();
         Vector3D planeIntersectionPoint = getIntersectionPoint(startPoint, direction, min, max, p);
         if (planeIntersectionPoint == null) {
             return Double.MAX_VALUE;

@@ -22,7 +22,7 @@ public class RendererPanel extends JPanel implements GLEventListener {
     private double xAngle = -22.5;
     private double yAngle = 22.5;
 
-    private Vector3D position = new Vector3D(2, 2, 2);
+    private Vector3D position = new Vector3D(10, 10, 10);
 
     private double fovX, fovY, width, height;
 
@@ -33,9 +33,20 @@ public class RendererPanel extends JPanel implements GLEventListener {
     private boolean draggingModeMove = false;
     private Vector3D originalPlaneIntersectionPoint = null;
     private Vector3D originalBuildingTranslation = null;
+    private double originalBuildingIntersectionHeight = 0;
 
     private boolean draggingModeRotate = false;
     private double originalBuildingRotation = 0;
+
+    private Vector3D livePlaneIntersectionPoint = null;
+    private Vector3D liveStartPoint = null;
+    private Vector3D liveDirection = null;
+
+
+    private int[] viewport;
+    private double[] mvmatrix;
+    private double[] projmatrix;
+
 
     GLCanvas canvas = null;
 
@@ -91,7 +102,7 @@ public class RendererPanel extends JPanel implements GLEventListener {
                     Vector3D direction = ray.getValue();
                     Vector3D startPoint = ray.getKey();
 
-                    Vector3D currentPlaneIntersectionPoint = Util.getIntersectionPoint(startPoint, direction, Vector3D.ZERO, Vector3D.PLUS_I, Vector3D.PLUS_K);
+                    Vector3D currentPlaneIntersectionPoint = Util.getIntersectionPoint(startPoint.subtract(new Vector3D(0, originalBuildingIntersectionHeight, 0)), direction, Vector3D.ZERO, Vector3D.PLUS_I, Vector3D.PLUS_K);
 
                     double deltaXPlane = self.originalPlaneIntersectionPoint.getX() - currentPlaneIntersectionPoint.getX();
                     double deltaYPlane = self.originalPlaneIntersectionPoint.getZ() - currentPlaneIntersectionPoint.getZ();
@@ -168,12 +179,24 @@ public class RendererPanel extends JPanel implements GLEventListener {
                 }
                 lastMouseCoords[0] = e.getX();
                 lastMouseCoords[1] = e.getY();
+
+                Pair<Vector3D, Vector3D> ray = getClickRay(e.getX(), e.getY());
+                liveDirection = ray.getValue();
+                liveStartPoint = ray.getKey();
+                livePlaneIntersectionPoint = Util.getIntersectionPoint(liveStartPoint, liveDirection, Vector3D.ZERO, Vector3D.PLUS_I, Vector3D.PLUS_K);
+
                 glcanvas.display();
             }
 
             @Override
             public void mouseMoved(MouseEvent e) {
-
+                Pair<Vector3D, Vector3D> ray = getClickRay(e.getX(), e.getY());
+                liveDirection = ray.getValue();
+                liveStartPoint = ray.getKey();
+                livePlaneIntersectionPoint = Util.getIntersectionPoint(liveStartPoint, liveDirection, Vector3D.ZERO, Vector3D.PLUS_I, Vector3D.PLUS_K);
+                if (livePlaneIntersectionPoint != null && debug) {
+                    glcanvas.display();
+                }
             }
         });
 
@@ -184,7 +207,7 @@ public class RendererPanel extends JPanel implements GLEventListener {
                 Vector3D direction = ray.getValue();
                 Vector3D startPoint = ray.getKey();
 
-                Building closestBuilding = self.getBuildingFromRay(startPoint, direction);
+                Building closestBuilding = getBuildingFromRay(startPoint, direction).getKey();
                 Building oldSelected = self.selectedBuilding;
                 if (closestBuilding != null) {
                     self.selectedBuilding = closestBuilding;
@@ -202,13 +225,21 @@ public class RendererPanel extends JPanel implements GLEventListener {
                 Vector3D direction = ray.getValue();
                 Vector3D startPoint = ray.getKey();
 
-                Building closestBuilding = self.getBuildingFromRay(startPoint, direction);
+                Pair<Building, Double> res = getBuildingFromRay(startPoint, direction);
+                Building closestBuilding = res.getKey();
+                double distance = res.getValue();
 
                 self.originalPlaneIntersectionPoint = Util.getIntersectionPoint(startPoint, direction, Vector3D.ZERO, Vector3D.PLUS_I, Vector3D.PLUS_K);
 
                 if (closestBuilding == self.selectedBuilding && self.selectedBuilding != null) {
                     self.draggingModeMove = true;
                     self.originalBuildingTranslation = closestBuilding.getTranslation();
+
+                    // calculate the height of where we intersect the building
+                    double height = startPoint.add(direction.normalize().scalarMultiply(distance)).getY();
+                    originalBuildingIntersectionHeight = height;
+                    originalPlaneIntersectionPoint = Util.getIntersectionPoint(startPoint.subtract(new Vector3D(0, height, 0)), direction, Vector3D.ZERO, Vector3D.PLUS_I, Vector3D.PLUS_K);
+
                 } else if (self.selectedBuilding != null && self.selectedBuilding.isHittingRotationRing(startPoint, direction)) {
                     self.draggingModeRotate = true;
                     self.originalBuildingRotation = self.selectedBuilding.getRotationAngle();
@@ -257,9 +288,7 @@ public class RendererPanel extends JPanel implements GLEventListener {
                         factor = 2;
                     }
 
-                    RealMatrix rotationXAxis = Util.createRotationMatrix(self.xAngle / 180 * Math.PI, Vector3D.PLUS_J);
-                    RealMatrix rotationYAxis = Util.createRotationMatrix(self.yAngle / 180 * Math.PI, Vector3D.PLUS_I);
-                    RealMatrix rotation = rotationYAxis.multiply(rotationXAxis);
+                    RealMatrix rotation = getCurrentRotationMatrix();
 
                     if (delta > 2000000000) {
                         scrollSinceLast[0] = 0;
@@ -354,7 +383,7 @@ public class RendererPanel extends JPanel implements GLEventListener {
 
         //drawing the base
         for (Building building : buildings) {
-            building.draw(gl, debug || building == selectedBuilding, position);
+            building.draw(gl, building == selectedBuilding, debug, position);
         }
 
         gl.glLineWidth(8);
@@ -389,6 +418,15 @@ public class RendererPanel extends JPanel implements GLEventListener {
             gl.glVertex3d(i, 0, 100);
             gl.glEnd();
         }
+
+        if (debug && livePlaneIntersectionPoint != null) {
+            gl.glColor3d(0, 1, 0);
+            gl.glBegin(GL2.GL_LINES);
+            gl.glVertex3d(livePlaneIntersectionPoint.getX(), 0, livePlaneIntersectionPoint.getZ());
+            gl.glVertex3d(livePlaneIntersectionPoint.getX(), 100, livePlaneIntersectionPoint.getZ());
+            gl.glEnd();
+        }
+
 
         gl.glFlush();
 
@@ -433,6 +471,18 @@ public class RendererPanel extends JPanel implements GLEventListener {
         // Enable the model-view transform
         gl.glMatrixMode(GL2.GL_MODELVIEW);
         gl.glLoadIdentity(); // reset
+
+        this.viewport = new int[4];
+        this.mvmatrix = new double[16];
+        this.projmatrix = new double[16];
+
+        gl.glGetIntegerv(GL.GL_VIEWPORT, viewport, 0);
+        gl.glGetDoublev(GL2.GL_MODELVIEW_MATRIX, mvmatrix, 0);
+        gl.glGetDoublev(GL2.GL_PROJECTION_MATRIX, projmatrix, 0);
+
+        this.viewport[2] = canvas.getWidth();
+        this.viewport[3] = canvas.getHeight();
+
     }
 
     public void addBuilding(Building building) {
@@ -442,22 +492,29 @@ public class RendererPanel extends JPanel implements GLEventListener {
         this.buildings.add(building);
     }
 
-    public Pair<Vector3D, Vector3D> getClickRay(int pixelX, int pixelY) {
-        double deltaX = (pixelX / width - .5) * fovX;
-        double deltaY = (pixelY / height - .5) * fovY;
-
-
-        RealMatrix rotationXAxis = Util.createRotationMatrix((xAngle + deltaX) / 180 * Math.PI, Vector3D.PLUS_J);
-        RealMatrix rotationYAxis = Util.createRotationMatrix((yAngle + deltaY) / 180 * Math.PI, Vector3D.PLUS_I);
+    public RealMatrix getCurrentRotationMatrix() {
+        RealMatrix rotationYAxis = Util.createRotationMatrix((yAngle) / 180 * Math.PI, Vector3D.PLUS_I);
+        RealMatrix rotationXAxis = Util.createRotationMatrix((xAngle) / 180 * Math.PI, Vector3D.PLUS_J);
         RealMatrix rotation = rotationYAxis.multiply(rotationXAxis);
 
-        Vector3D direction = Util.preMultiplyVector3dMatrix(Vector3D.MINUS_K, rotation);
+        return rotation;
+    }
+
+    public Pair<Vector3D, Vector3D> getClickRay(int pixelX, int pixelY) {
+        RealMatrix rotation = getCurrentRotationMatrix();
+
+        double[] wcoord = new double[4];
+        glu.gluUnProject((double) pixelX, (double) (height - pixelY), 1.0, mvmatrix, 0, projmatrix, 0, viewport, 0, wcoord, 0);
+
+        Vector3D direction = Util.preMultiplyVector3dMatrix(new Vector3D(wcoord[0], wcoord[1], wcoord[2]), rotation);
+        direction = direction.normalize();
+
         Vector3D startPoint = position;
 
         return new Pair<>(startPoint, direction);
     }
 
-    private Building getBuildingFromRay(Vector3D startPoint, Vector3D direction) {
+    private Pair<Building, Double> getBuildingFromRay(Vector3D startPoint, Vector3D direction) {
         Building closestBuilding = null;
         double closestDistance = Double.MAX_VALUE;
         for (Building building : buildings) {
@@ -467,7 +524,7 @@ public class RendererPanel extends JPanel implements GLEventListener {
                 closestBuilding = building;
             }
         }
-        return closestBuilding;
+        return new Pair<>(closestBuilding, closestDistance);
     }
 
     private void emitBuildingEvent(Building b, BuildingChangeType type) {

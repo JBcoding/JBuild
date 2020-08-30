@@ -46,6 +46,8 @@ public class Polygon extends Shape {
             cleanPoints.add(new Vector3D(point.getX() - minX, point.getY() - minY, 0));
         }
 
+        minX = cleanPoints.stream().mapToDouble(Vector3D::getX).min().getAsDouble();
+
         while (cleanPoints.get(0).getX() > minX) {
             Collections.rotate(cleanPoints, 1);
         }
@@ -94,7 +96,7 @@ public class Polygon extends Shape {
         return Math.abs((a.getX() * (b.getY() - c.getY()) + b.getX() * (c.getY() - a.getY()) + c.getX() * (a.getY() - b.getY())) / 2);
     }
 
-    public void drawTriangle(GL2 gl, Vector3D p1, Vector3D p2, Vector3D p3, Vector3D lightNormal) {
+    public void drawTriangle(GL2 gl, boolean debug, Vector3D p1, Vector3D p2, Vector3D p3, Vector3D lightNormal) {
         gl.glColor3d(color.getRed() / 255.0f, color.getGreen() / 255.0f, color.getBlue() / 255.0f);
 
         gl.glBegin(GL2.GL_TRIANGLES);
@@ -110,14 +112,16 @@ public class Polygon extends Shape {
 
         gl.glEnd();
 
-        //renderer.Util.drawLine(gl, p1, p2);
-        //renderer.Util.drawLine(gl, p2, p3);
-        //renderer.Util.drawLine(gl, p3, p1);
+        if (debug) {
+            renderer.Util.drawLine(gl, p1, p2);
+            renderer.Util.drawLine(gl, p2, p3);
+            renderer.Util.drawLine(gl, p3, p1);
+        }
     }
 
-    public void drawAndSplitTriangles(GL2 gl, Vector3D p1, Vector3D p2, Vector3D p3, Vector3D lightNormal) {
+    public void drawAndSplitTriangles(GL2 gl, boolean debug, Vector3D p1, Vector3D p2, Vector3D p3, Vector3D lightNormal) {
         if (getAreaOfTriangle(p1, p2, p3) < .5) {
-            drawTriangle(gl, getRealPoint(p1), getRealPoint(p2), getRealPoint(p3), lightNormal);
+            drawTriangle(gl, debug, getRealPoint(p1), getRealPoint(p2), getRealPoint(p3), lightNormal);
             return;
         }
 
@@ -134,17 +138,17 @@ public class Polygon extends Shape {
         }
 
         d = a.add(b).scalarMultiply(.5);
-        drawAndSplitTriangles(gl, a, d, c, lightNormal);
-        drawAndSplitTriangles(gl, b, c, d, lightNormal);
+        drawAndSplitTriangles(gl, debug, a, d, c, lightNormal);
+        drawAndSplitTriangles(gl, debug, b, c, d, lightNormal);
     }
 
-    public void drawTriangles(GL2 gl, List<Vector3D> points, Vector3D lightNormal) {
+    public void drawTriangles(GL2 gl, boolean debug, List<Vector3D> points, Vector3D lightNormal) {
         Vector3D firstPoint = points.get(0);
         Vector3D lastPoint = points.get(1);
         for (int i = 2; i < points.size(); i++) {
             Vector3D point = points.get(i);
 
-            drawAndSplitTriangles(gl, firstPoint, lastPoint, point, lightNormal);
+            drawAndSplitTriangles(gl, debug, firstPoint, lastPoint, point, lightNormal);
 
             lastPoint = point;
         }
@@ -152,13 +156,13 @@ public class Polygon extends Shape {
     }
 
     @Override
-    public void draw(GL2 gl, boolean highlighted, Vector3D position) {
+    public void draw(GL2 gl, boolean highlighted, boolean debug, Vector3D position) {
         gl.glColor3d(color.getRed() / 255.0f, color.getGreen() / 255.0f, color.getBlue() / 255.0f);
 
         Vector3D lightNormal = getLightNormalVector(position);
-        drawTriangles(gl, points, lightNormal);
+        drawTriangles(gl, debug && highlighted, points, lightNormal);
 
-        if (highlighted) {
+        if (highlighted || debug) {
             for (int i = 0; i < points.size(); i++) {
                 Vector3D point1 = points.get(i);
                 point1 = getRealPoint(point1);
@@ -215,11 +219,16 @@ public class Polygon extends Shape {
 
     @Override
     public List<Shape> split(Axis2D axis, UnitLength[] splits, boolean repeat, boolean includePartialSections) {
+        boolean debug = false;
+        if (splits.length == 3 && splits[1].getAmount() == 0.8 && splits[1].getUnit() == Unit.METER && axis == Axis2D.Y) {
+            System.out.println("s");
+            debug = true;
+        }
         if (axis == Axis2D.Y) {
             // code below is made for splits in x axis, so just swap axis for y
             for (int i = 0; i < points.size(); i++) {
                 Vector3D point = points.get(i);
-                points.set(i, new Vector3D(point.getY(), point.getX(), point.getZ()));
+                points.set(i, new Vector3D(-point.getY(), point.getX(), point.getZ()));
             }
             this.points = cleanPoints(points);
         }
@@ -248,6 +257,9 @@ public class Polygon extends Shape {
                         widths.add(currentPosition);
                         lastPartial = true;
                     }
+                    break doWhile;
+                } else if (Math.abs(currentPosition - maxX) < 0.00001d) { // currentPosition == maxX
+                    widths.add(currentPosition);
                     break doWhile;
                 } else {
                     widths.add(currentPosition);
@@ -288,9 +300,10 @@ public class Polygon extends Shape {
                 }
             }
 
-            double minX = newPoints.stream().mapToDouble(Vector3D::getX).min().getAsDouble();
-            double minY = newPoints.stream().mapToDouble(Vector3D::getY).min().getAsDouble();
-            Vector3D offsetVector = new Vector3D(minX, minY, 0);
+            double localMinX = newPoints.stream().mapToDouble(Vector3D::getX).min().getAsDouble();
+            double localMaxX = newPoints.stream().mapToDouble(Vector3D::getX).max().getAsDouble();
+            double localMinY = newPoints.stream().mapToDouble(Vector3D::getY).min().getAsDouble();
+            Vector3D offsetVector = new Vector3D(localMinX, localMinY, 0);
             for (int i = 0; i < newPoints.size(); i++) {
                 newPoints.set(i, newPoints.get(i).subtract(offsetVector));
             }
@@ -298,14 +311,9 @@ public class Polygon extends Shape {
                 // code above is made for splits in x axis, so just swap axis for y
                 for (int i = 0; i < newPoints.size(); i++) {
                     Vector3D point = newPoints.get(i);
-                    newPoints.set(i, new Vector3D(point.getY(), point.getX(), point.getZ()));
+                    newPoints.set(i, new Vector3D(point.getY(), -point.getX(), point.getZ()));
                 }
-                Collections.reverse(newPoints);
-                offsetVector = new Vector3D(minY, minX, 0);
-                if (j != 0) {
-                    newPoints.add(0, newPoints.get(newPoints.size() - 1));
-                    newPoints.remove(newPoints.size() - 1);
-                }
+                offsetVector = new Vector3D(-localMinY, maxX - localMaxX, 0);
             }
             Polygon newFace = new Polygon(this, newPoints);
             newFace.splitIndex = j;
@@ -314,6 +322,10 @@ public class Polygon extends Shape {
             if (newFace.points.stream().mapToDouble(Vector3D::getX).max().getAsDouble() < 0.000001 ||
                 newFace.points.stream().mapToDouble(Vector3D::getY).max().getAsDouble() < 0.000001) {
                 continue;
+            }
+
+            if (debug) {
+                System.out.println(newFace.points);
             }
 
             newFaces.add(newFace);
@@ -325,7 +337,7 @@ public class Polygon extends Shape {
             // code above is made for splits in x axis, so just swap axis for y
             for (int i = 0; i < points.size(); i++) {
                 Vector3D point = points.get(i);
-                points.set(i, new Vector3D(point.getY(), point.getX(), point.getZ()));
+                points.set(i, new Vector3D(-point.getY(), point.getX(), point.getZ()));
             }
             this.points = cleanPoints(points);
         }
