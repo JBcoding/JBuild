@@ -264,6 +264,9 @@ public class ShapeGeneratorVisitor implements ASTVisitor<List<Shape>> {
 
     @Override
     public List<Shape> visit(PolyNameCommandNode polyNameCommandNode) {
+        if (polyNameCommandNode.getName().equals("NIL")) {
+            return new ArrayList<>();
+        }
         if (rulesMap.containsKey(polyNameCommandNode.getName())) {
             return (List<Shape>) rulesMap.get(polyNameCommandNode.getName()).accept(this);
         } else {
