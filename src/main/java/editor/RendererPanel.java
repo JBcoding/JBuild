@@ -397,13 +397,21 @@ public class RendererPanel extends JPanel implements GLEventListener {
         gl.glRotated(xAngle, 0.0f, 1.0f, 0.0f);
         gl.glTranslated(-position.getX(), -position.getY(), -position.getZ());
 
+        int minX = (int) position.getX() - 100;
+        int minZ = (int) position.getZ() - 100;
+        int minY = (int) position.getY() - 100;
+        int maxX = minX + 200;
+        int maxZ = minX + 200;
+        int maxY = minY + 200;
+
+
         // add the ground
         gl.glColor3d(185 / 255.0, 180 / 255.0, 171 / 255.0);
         gl.glBegin(GL2.GL_POLYGON);
-        gl.glVertex3d(-100, -.1, -100);
-        gl.glVertex3d(100, -.1, -100);
-        gl.glVertex3d(100, -.1, 100);
-        gl.glVertex3d(-100, -.1, 100);
+        gl.glVertex3d(minX, -.1, minZ);
+        gl.glVertex3d(maxX, -.1, minZ);
+        gl.glVertex3d(maxX, -.1, maxZ);
+        gl.glVertex3d(minZ, -.1, maxZ);
         gl.glEnd();
 
 
@@ -412,36 +420,41 @@ public class RendererPanel extends JPanel implements GLEventListener {
             building.draw(gl, building == selectedBuilding, debug, position);
         }
 
+
+        // axes
         gl.glLineWidth(8);
         gl.glColor3d(1, 0, 0);
         gl.glBegin(GL2.GL_LINES);
-        gl.glVertex3d(-100, 0, 0);
-        gl.glVertex3d(100, 0, 0);
+        gl.glVertex3d(minX, 0, 0);
+        gl.glVertex3d(maxX, 0, 0);
         gl.glEnd();
         gl.glColor3d(0, 1, 0);
         gl.glBegin(GL2.GL_LINES);
-        gl.glVertex3d(0, -100, 0);
-        gl.glVertex3d(0, 100, 0);
+        gl.glVertex3d(0, minY, 0);
+        gl.glVertex3d(0, maxY, 0);
         gl.glEnd();
         gl.glColor3d( 0, 0, 1);
         gl.glBegin(GL2.GL_LINES);
-        gl.glVertex3d(0, 0, -100);
-        gl.glVertex3d(0, 0, 100);
+        gl.glVertex3d(0, 0, minZ);
+        gl.glVertex3d(0, 0, maxZ);
         gl.glEnd();
 
         gl.glLineWidth(2);
-        for (int i = -100; i <= 100; i++) {
-            gl.glColor3d( 0.1, 0, 0);
+
+
+        for (int i = minZ; i <= maxZ; i++) {
+            gl.glColor3d( 0.6, 0.6, 0.6);
             gl.glBegin(GL2.GL_LINES);
-            gl.glVertex3d(-100, -.05, i);
-            gl.glVertex3d(100, -.05, i);
+            gl.glVertex3d(minX, -.05, i);
+            gl.glVertex3d(maxX, -.05, i);
             gl.glEnd();
+        }
 
-
-            gl.glColor3d( 0, 0, 0.1);
+        for (int i = minX; i <= maxX; i++) {
+            gl.glColor3d( 0.6, 0.6, 0.6);
             gl.glBegin(GL2.GL_LINES);
-            gl.glVertex3d(i, -.05, -100);
-            gl.glVertex3d(i, -.05, 100);
+            gl.glVertex3d(i, -.05, minZ);
+            gl.glVertex3d(i, -.05, maxZ);
             gl.glEnd();
         }
 
