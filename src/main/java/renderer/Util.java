@@ -53,7 +53,11 @@ public class Util {
     }
 
     public static void drawLine(GL2 gl, Vector3D p1, Vector3D p2) {
-        gl.glColor3d( .8f, .8f, 1);
+        drawLine(gl, p1, p2, 0, 0, 0);
+    }
+
+    public static void drawLine(GL2 gl, Vector3D p1, Vector3D p2, double r, double g, double b) {
+        gl.glColor3d( r, g, b);
 
         gl.glLineWidth(8);
 
@@ -66,7 +70,7 @@ public class Util {
         gl.glEnd();
     }
 
-    public static Vector3D getIntersectionPoint(Vector3D startPoint, Vector3D direction, Vector3D min, Vector3D max, Vector3D p) {
+    public static Vector3D getIntersectionPoint(Vector3D startPoint, Vector3D direction, Vector3D p1, Vector3D p2, Vector3D p3) {
         /*
         plane Equation N_x (x - p1_x) + N_y (y - p1_y) + N_z (z - p1_z) = 0
         Line equation (x, y, z) = (o_x + d_x t, o_y + d_y t, o_z + d_z t), o = startPoint, d = direction
@@ -78,12 +82,12 @@ public class Util {
         */
         direction = direction.normalize();
 
-        Vector3D normalVector = (min.subtract(p).crossProduct(max.subtract(p)));
+        Vector3D normalVector = (p1.subtract(p3).crossProduct(p2.subtract(p3)));
         double B = normalVector.dotProduct(direction);
         if (B == 0) { // Line is parallel to the plane
             return null;
         }
-        double A = normalVector.dotProduct(startPoint) - normalVector.dotProduct(min);
+        double A = normalVector.dotProduct(startPoint) - normalVector.dotProduct(p1);
         double t = -A / B;
         if (t <= 0) { // The plane is behind the line
             return null;
@@ -125,5 +129,65 @@ public class Util {
             return t;
         }
         return Double.MAX_VALUE;
+    }
+
+    // https://stackoverflow.com/questions/4858264/find-the-distance-from-a-3d-point-to-a-line-segment
+    public static double smallestDistanceBetweenPointAndLineSegment(Vector3D a, Vector3D b, Vector3D p) {
+        Vector3D ab = b.subtract(a);
+        Vector3D ap = p.subtract(a);
+
+        if (ap.dotProduct(ab) <= 0.0) { // Point is lagging behind start of the segment, so perpendicular distance is not viable.
+            return ap.distance(Vector3D.ZERO); // Use distance to start of segment instead.
+        }
+
+        Vector3D bp = p.subtract(b) ;
+
+        if (bp.dotProduct(ab) >= 0.0) { // Point is advanced past the end of the segment, so perpendicular distance is not viable.
+            return bp.distance(Vector3D.ZERO); // Use distance to end of the segment instead.
+        }
+
+        // Perpendicular distance of point to segment.
+        return (ab.crossProduct(ap)).distance(Vector3D.ZERO) / ab.distance(Vector3D.ZERO);
+    }
+
+
+    public static double smallestDistanceBetweenPointAndTriangle(Vector3D t1, Vector3D t2, Vector3D t3, Vector3D p) {
+        double result = Double.MAX_VALUE;
+
+        // first distance to the 3 corners
+        // not needed af this is the result from the point - line segment tests
+
+        // then distance to the 3 line segments
+        result = Math.min(result, smallestDistanceBetweenPointAndLineSegment(t1, t2, p));
+        result = Math.min(result, smallestDistanceBetweenPointAndLineSegment(t2, t3, p));
+        result = Math.min(result, smallestDistanceBetweenPointAndLineSegment(t3, t1, p));
+
+        // then check distance to triangle plane
+        Vector3D pointClosestInTrianglePlane;
+        Vector3D trianglePlanNormalVector = (t1.subtract(t2)).crossProduct(t1.subtract(t3));
+        pointClosestInTrianglePlane = getIntersectionPoint(p, trianglePlanNormalVector, t1, t2, t3);
+        if (pointClosestInTrianglePlane == null) {
+            pointClosestInTrianglePlane = getIntersectionPoint(p, trianglePlanNormalVector.scalarMultiply(-1), t1, t2, t3);
+        }
+        if (pointClosestInTrianglePlane != null) {
+            /*
+            Transform to barycentric coordinates to check if point is inside triangle
+            https://en.wikipedia.org/wiki/Barycentric_coordinate_system
+            */
+            double areaOfTriangleTimes2 = trianglePlanNormalVector.distance(Vector3D.ZERO);
+
+            Vector3D Pp1 = pointClosestInTrianglePlane.subtract(t1); // P is the plane intersection point
+            Vector3D Pp2 = pointClosestInTrianglePlane.subtract(t2);
+            Vector3D Pp3 = pointClosestInTrianglePlane.subtract(t3);
+            double alpha = Pp2.crossProduct(Pp3).distance(Vector3D.ZERO);
+            double beta = Pp3.crossProduct(Pp1).distance(Vector3D.ZERO);
+            double gamma = Pp1.crossProduct(Pp2).distance(Vector3D.ZERO);
+            if (Math.abs(alpha + beta + gamma - areaOfTriangleTimes2) < 0.00001d) {
+                // the point is inside the triangle
+                result = pointClosestInTrianglePlane.distance(p);
+            }
+        }
+
+        return result;
     }
 }

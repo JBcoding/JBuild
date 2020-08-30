@@ -119,8 +119,8 @@ public class Polygon extends Shape {
         }
     }
 
-    public void drawAndSplitTriangles(GL2 gl, boolean debug, Vector3D p1, Vector3D p2, Vector3D p3, Vector3D lightNormal) {
-        if (getAreaOfTriangle(p1, p2, p3) < .5) {
+    public void drawAndSplitTriangles(GL2 gl, boolean debug, Vector3D p1, Vector3D p2, Vector3D p3, Vector3D lightNormal, double maxTriangleSize) {
+        if (getAreaOfTriangle(p1, p2, p3) < maxTriangleSize) {
             drawTriangle(gl, debug, getRealPoint(p1), getRealPoint(p2), getRealPoint(p3), lightNormal);
             return;
         }
@@ -138,17 +138,21 @@ public class Polygon extends Shape {
         }
 
         d = a.add(b).scalarMultiply(.5);
-        drawAndSplitTriangles(gl, debug, a, d, c, lightNormal);
-        drawAndSplitTriangles(gl, debug, b, c, d, lightNormal);
+        drawAndSplitTriangles(gl, debug, a, d, c, lightNormal, maxTriangleSize);
+        drawAndSplitTriangles(gl, debug, b, c, d, lightNormal, maxTriangleSize);
     }
 
-    public void drawTriangles(GL2 gl, boolean debug, List<Vector3D> points, Vector3D lightNormal) {
+    public void drawTriangles(GL2 gl, boolean debug, List<Vector3D> points, Vector3D lightNormal, Vector3D cameraPosition) {
         Vector3D firstPoint = points.get(0);
         Vector3D lastPoint = points.get(1);
         for (int i = 2; i < points.size(); i++) {
             Vector3D point = points.get(i);
 
-            drawAndSplitTriangles(gl, debug, firstPoint, lastPoint, point, lightNormal);
+            // check if the 3 points are on a line
+            if ((firstPoint.subtract(lastPoint)).crossProduct(firstPoint.subtract(point)).distance(Vector3D.ZERO) > 0.0000001d) {
+                double distanceToCamera = renderer.Util.smallestDistanceBetweenPointAndTriangle(getRealPoint(firstPoint), getRealPoint(lastPoint), getRealPoint(point), cameraPosition);
+                drawAndSplitTriangles(gl, debug, firstPoint, lastPoint, point, lightNormal, Math.max(.05, distanceToCamera / 10));
+            }
 
             lastPoint = point;
         }
@@ -156,11 +160,11 @@ public class Polygon extends Shape {
     }
 
     @Override
-    public void draw(GL2 gl, boolean highlighted, boolean debug, Vector3D position) {
+    public void draw(GL2 gl, boolean highlighted, boolean debug, Vector3D cameraPosition) {
         gl.glColor3d(color.getRed() / 255.0f, color.getGreen() / 255.0f, color.getBlue() / 255.0f);
 
-        Vector3D lightNormal = getLightNormalVector(position);
-        drawTriangles(gl, debug && highlighted, points, lightNormal);
+        Vector3D lightNormal = getLightNormalVector(cameraPosition);
+        drawTriangles(gl, debug && highlighted, points, lightNormal, cameraPosition);
 
         if (highlighted || debug) {
             for (int i = 0; i < points.size(); i++) {

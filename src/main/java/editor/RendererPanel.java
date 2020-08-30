@@ -3,6 +3,7 @@ package editor;
 import com.jogamp.opengl.*;
 import com.jogamp.opengl.awt.GLCanvas;
 import com.jogamp.opengl.glu.GLU;
+import com.jogamp.opengl.util.awt.TextRenderer;
 import javafx.util.Pair;
 import org.apache.commons.math3.geometry.euclidean.threed.Vector3D;
 import org.apache.commons.math3.linear.RealMatrix;
@@ -13,6 +14,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public class RendererPanel extends JPanel implements GLEventListener {
@@ -46,6 +48,10 @@ public class RendererPanel extends JPanel implements GLEventListener {
     private int[] viewport;
     private double[] mvmatrix;
     private double[] projmatrix;
+
+
+    private long[] lastFrameRenderTimes = new long[60];
+    private int lastFrameRenderTimesIndex = 0;
 
 
     GLCanvas canvas = null;
@@ -278,7 +284,7 @@ public class RendererPanel extends JPanel implements GLEventListener {
             public void mouseWheelMoved(MouseWheelEvent e) {
                 long time = System.nanoTime();
                 long delta = time - nanoTimeAtLastScroll[0];
-                if (delta > 17000000) {
+                if (delta > Math.max(17000000, 2 * lastFrameRenderTimes[(lastFrameRenderTimesIndex) % lastFrameRenderTimes.length])) {
                     nanoTimeAtLastScroll[0] = time;
                     double factor = 0.2;
 
@@ -316,7 +322,6 @@ public class RendererPanel extends JPanel implements GLEventListener {
             public void keyPressed(KeyEvent e) {
                 if (e.isShiftDown() && e.getExtendedKeyCode() == 68) { // shift + d
                     self.debug =! self.debug;
-                    System.out.println("s" + self.debug);
                     glcanvas.display();
                 }
 
@@ -347,6 +352,8 @@ public class RendererPanel extends JPanel implements GLEventListener {
     @Override
     public void display(GLAutoDrawable drawable) {
 
+        long timeStart = System.nanoTime();
+
         final GL2 gl = drawable.getGL().getGL2();
 
         gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT);
@@ -372,13 +379,32 @@ public class RendererPanel extends JPanel implements GLEventListener {
         gl.glLightfv(GL2.GL_LIGHT0, GL2.GL_DIFFUSE, diffuse, 0);
         gl.glLightfv(GL2.GL_LIGHT0, GL2.GL_POSITION,lightPos, 0);
         gl.glLightfv(GL2.GL_LIGHT0, GL2.GL_SPECULAR,specular, 0);
-        //gl.glLightfv(GL2.GL_LIGHT0, GL2.GL_SPOT_CUTOFF,new float[]{65}, 0);
-        //gl.glLightfv(GL2.GL_LIGHT0, GL2.GL_SPOT_DIRECTION,new float[]{0, 0, -1}, 0);
+
+
+        // add blue sky
+        gl.glShadeModel(gl.GL_SMOOTH);
+        gl.glColor3d(135 / 255.0, 206 / 255.0, 235 / 255.0);
+        gl.glBegin(GL2.GL_POLYGON);
+        gl.glVertex3d(-100, 50, -90);
+        gl.glVertex3d(100, 50, -90);
+        gl.glColor3d(0 / 255.0, 28 / 255.0, 124 / 255.0);
+        gl.glVertex3d(100, -50, -90);
+        gl.glVertex3d(-100, -50, -90);
+        gl.glEnd();
 
 
         gl.glRotated(yAngle, 1.0f, 0.0f, 0.0f);
         gl.glRotated(xAngle, 0.0f, 1.0f, 0.0f);
         gl.glTranslated(-position.getX(), -position.getY(), -position.getZ());
+
+        // add the ground
+        gl.glColor3d(185 / 255.0, 180 / 255.0, 171 / 255.0);
+        gl.glBegin(GL2.GL_POLYGON);
+        gl.glVertex3d(-100, -.1, -100);
+        gl.glVertex3d(100, -.1, -100);
+        gl.glVertex3d(100, -.1, 100);
+        gl.glVertex3d(-100, -.1, 100);
+        gl.glEnd();
 
 
         //drawing the base
@@ -407,15 +433,15 @@ public class RendererPanel extends JPanel implements GLEventListener {
         for (int i = -100; i <= 100; i++) {
             gl.glColor3d( 0.1, 0, 0);
             gl.glBegin(GL2.GL_LINES);
-            gl.glVertex3d(-100, 0, i);
-            gl.glVertex3d(100, 0, i);
+            gl.glVertex3d(-100, -.05, i);
+            gl.glVertex3d(100, -.05, i);
             gl.glEnd();
 
 
             gl.glColor3d( 0, 0, 0.1);
             gl.glBegin(GL2.GL_LINES);
-            gl.glVertex3d(i, 0, -100);
-            gl.glVertex3d(i, 0, 100);
+            gl.glVertex3d(i, -.05, -100);
+            gl.glVertex3d(i, -.05, 100);
             gl.glEnd();
         }
 
@@ -427,9 +453,48 @@ public class RendererPanel extends JPanel implements GLEventListener {
             gl.glEnd();
         }
 
+        if (debug) {
+            int fontSize = 16;
+            TextRenderer textRenderer = new TextRenderer(new Font("Courier", Font.PLAIN, fontSize));
+            textRenderer.beginRendering((int) width, (int) height);
+            textRenderer.setColor(Color.YELLOW);
+            textRenderer.setSmoothing(true);
+
+            int fps = getFps();
+            String[] linesToDump = new String[] {
+                    String.format("%d FPS", fps),
+                    String.format("Camera Position            : %s", position),
+                    String.format("Cursor Ray Direction       : %s", liveDirection),
+                    String.format("Cursor Ground Intersection : %s", livePlaneIntersectionPoint)
+            };
+            for (int i = 0; i < linesToDump.length; i++) {
+                textRenderer.draw(linesToDump[i], (int) 10, (int) height - 10 - 12 - fontSize * i);
+            }
+            textRenderer.endRendering();
+        }
 
         gl.glFlush();
 
+        long deltaTime = System.nanoTime() - timeStart;
+        lastFrameRenderTimes[(lastFrameRenderTimesIndex++) % lastFrameRenderTimes.length] = deltaTime;
+    }
+
+    private int getFps() {
+        int validCounts = 0;
+        long totalTime = 0;
+        for (int i = 0; i < lastFrameRenderTimes.length; i++) {
+            if (lastFrameRenderTimes[i] != 0) {
+                totalTime += lastFrameRenderTimes[i];
+                validCounts += 1;
+            }
+        }
+        int fps;
+        if (validCounts != 0) {
+            fps = (int) Math.ceil(validCounts * 1e9 / totalTime);
+        } else {
+            fps = 60;
+        }
+        return fps;
     }
 
     @Override

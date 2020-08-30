@@ -134,13 +134,12 @@ public class Building {
         Vector3D bbMin = boundingBox.getMin();
         Vector3D bbMax = boundingBox.getMax();
 
-        int ringParts = 100;
+        int ringParts = 64;
         Vector3D centrum = (new Vector3D(bbMax.getX(), 0, bbMax.getZ())).subtract(new Vector3D(bbMin.getX(), 0, bbMin.getZ())).scalarMultiply(.5);
         double smallRadius = centrum.distance(Vector3D.ZERO) + 1;
         centrum = centrum.add(bbMin);
         double bigRadius = smallRadius + 1;
 
-        gl.glColor3d(.6, .6, .6);
         for (int i = 0; i < ringParts; i++) {
             double fromAngle = Math.PI * 2 * i / ringParts;
             double toAngle = Math.PI * 2 * (i + 1) / ringParts;
@@ -155,9 +154,21 @@ public class Building {
             p3 = p3.add(centrum);
             p4 = p4.add(centrum);
 
+            int tickSize = 0;
+            int ii = i;
+            ii %= 16; tickSize += ii != 0 ? 1 : 0;
+            ii %= 8; tickSize += ii != 0 ? 1 : 0;
+            ii %= 4; tickSize += ii != 0 ? 1 : 0;
+            ii %= 2; tickSize += ii != 0 ? 1 : 0;
+            Util.drawLine(gl, p1.add(p2.subtract(p1).scalarMultiply(tickSize / 5.0)), p2, 1, 1, 1);
+
+            gl.glColor3d(.2, .2, .2);
+
             gl.glBegin(GL2.GL_TRIANGLES);
+
             gl.glNormal3d(0, 1, 0);
             gl.glVertex3d(p1.getX(), p1.getY(), p1.getZ());
+
 
             gl.glNormal3d(0, 1, 0);
             gl.glVertex3d(p2.getX(), p2.getY(), p2.getZ());
