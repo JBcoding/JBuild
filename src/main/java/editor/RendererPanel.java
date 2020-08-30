@@ -19,6 +19,7 @@ import java.util.List;
 
 public class RendererPanel extends JPanel implements GLEventListener {
     private static GLU glu;
+    private static final int RENDER_DISTANCE = 200;
     List<Building> buildings = new ArrayList<>();
 
     private double xAngle = -22.5;
@@ -385,11 +386,11 @@ public class RendererPanel extends JPanel implements GLEventListener {
         gl.glShadeModel(gl.GL_SMOOTH);
         gl.glColor3d(135 / 255.0, 206 / 255.0, 235 / 255.0);
         gl.glBegin(GL2.GL_POLYGON);
-        gl.glVertex3d(-100, 50, -90);
-        gl.glVertex3d(100, 50, -90);
+        gl.glVertex3d(-RENDER_DISTANCE, RENDER_DISTANCE, -RENDER_DISTANCE);
+        gl.glVertex3d(RENDER_DISTANCE, RENDER_DISTANCE, -RENDER_DISTANCE);
         gl.glColor3d(0 / 255.0, 28 / 255.0, 124 / 255.0);
-        gl.glVertex3d(100, -50, -90);
-        gl.glVertex3d(-100, -50, -90);
+        gl.glVertex3d(RENDER_DISTANCE, -RENDER_DISTANCE, -RENDER_DISTANCE);
+        gl.glVertex3d(-RENDER_DISTANCE, -RENDER_DISTANCE, -RENDER_DISTANCE);
         gl.glEnd();
 
 
@@ -397,21 +398,15 @@ public class RendererPanel extends JPanel implements GLEventListener {
         gl.glRotated(xAngle, 0.0f, 1.0f, 0.0f);
         gl.glTranslated(-position.getX(), -position.getY(), -position.getZ());
 
-        int minX = (int) position.getX() - 100;
-        int minZ = (int) position.getZ() - 100;
-        int minY = (int) position.getY() - 100;
-        int maxX = minX + 200;
-        int maxZ = minX + 200;
-        int maxY = minY + 200;
 
 
         // add the ground
         gl.glColor3d(185 / 255.0, 180 / 255.0, 171 / 255.0);
         gl.glBegin(GL2.GL_POLYGON);
-        gl.glVertex3d(minX, -.1, minZ);
-        gl.glVertex3d(maxX, -.1, minZ);
-        gl.glVertex3d(maxX, -.1, maxZ);
-        gl.glVertex3d(minZ, -.1, maxZ);
+        gl.glVertex3d(position.getX() - RENDER_DISTANCE, -.1, position.getZ() - RENDER_DISTANCE);
+        gl.glVertex3d(position.getX() + RENDER_DISTANCE, -.1, position.getZ() - RENDER_DISTANCE);
+        gl.glVertex3d(position.getX() + RENDER_DISTANCE, -.1, position.getZ() + RENDER_DISTANCE);
+        gl.glVertex3d(position.getX() - RENDER_DISTANCE, -.1, position.getZ() + RENDER_DISTANCE);
         gl.glEnd();
 
 
@@ -421,40 +416,18 @@ public class RendererPanel extends JPanel implements GLEventListener {
         }
 
 
-        // axes
-        gl.glLineWidth(8);
-        gl.glColor3d(1, 0, 0);
-        gl.glBegin(GL2.GL_LINES);
-        gl.glVertex3d(minX, 0, 0);
-        gl.glVertex3d(maxX, 0, 0);
-        gl.glEnd();
-        gl.glColor3d(0, 1, 0);
-        gl.glBegin(GL2.GL_LINES);
-        gl.glVertex3d(0, minY, 0);
-        gl.glVertex3d(0, maxY, 0);
-        gl.glEnd();
-        gl.glColor3d( 0, 0, 1);
-        gl.glBegin(GL2.GL_LINES);
-        gl.glVertex3d(0, 0, minZ);
-        gl.glVertex3d(0, 0, maxZ);
-        gl.glEnd();
-
         gl.glLineWidth(2);
-
-
-        for (int i = minZ; i <= maxZ; i++) {
+        for (int i = -RENDER_DISTANCE; i <= RENDER_DISTANCE; i++) {
             gl.glColor3d( 0.6, 0.6, 0.6);
             gl.glBegin(GL2.GL_LINES);
-            gl.glVertex3d(minX, -.05, i);
-            gl.glVertex3d(maxX, -.05, i);
+            gl.glVertex3d((int)position.getX() - RENDER_DISTANCE, -.05, (int)position.getZ() + i);
+            gl.glVertex3d((int)position.getX() + RENDER_DISTANCE, -.05, (int)position.getZ() + i);
             gl.glEnd();
-        }
 
-        for (int i = minX; i <= maxX; i++) {
             gl.glColor3d( 0.6, 0.6, 0.6);
             gl.glBegin(GL2.GL_LINES);
-            gl.glVertex3d(i, -.05, minZ);
-            gl.glVertex3d(i, -.05, maxZ);
+            gl.glVertex3d((int)position.getX() + i, -.05, (int)position.getZ() - RENDER_DISTANCE);
+            gl.glVertex3d((int)position.getX() + i, -.05, (int)position.getZ() + RENDER_DISTANCE);
             gl.glEnd();
         }
 
@@ -462,11 +435,30 @@ public class RendererPanel extends JPanel implements GLEventListener {
             gl.glColor3d(0, 1, 0);
             gl.glBegin(GL2.GL_LINES);
             gl.glVertex3d(livePlaneIntersectionPoint.getX(), 0, livePlaneIntersectionPoint.getZ());
-            gl.glVertex3d(livePlaneIntersectionPoint.getX(), 100, livePlaneIntersectionPoint.getZ());
+            gl.glVertex3d(livePlaneIntersectionPoint.getX(), position.getY() + RENDER_DISTANCE, livePlaneIntersectionPoint.getZ());
             gl.glEnd();
         }
 
         if (debug) {
+            // axes
+            gl.glLineWidth(8);
+            gl.glColor3d(1, 0, 0);
+            gl.glBegin(GL2.GL_LINES);
+            gl.glVertex3d(position.getX() - RENDER_DISTANCE, 0, 0);
+            gl.glVertex3d(position.getX() + RENDER_DISTANCE, 0, 0);
+            gl.glEnd();
+            gl.glColor3d(0, 1, 0);
+            gl.glBegin(GL2.GL_LINES);
+            gl.glVertex3d(0, position.getY() - RENDER_DISTANCE, 0);
+            gl.glVertex3d(0, position.getY() + RENDER_DISTANCE, 0);
+            gl.glEnd();
+            gl.glColor3d( 0, 0, 1);
+            gl.glBegin(GL2.GL_LINES);
+            gl.glVertex3d(0, 0, position.getZ() - RENDER_DISTANCE);
+            gl.glVertex3d(0, 0, position.getZ() + RENDER_DISTANCE);
+            gl.glEnd();
+            gl.glLineWidth(2);
+
             int fontSize = 16;
             TextRenderer textRenderer = new TextRenderer(new Font("Courier", Font.PLAIN, fontSize));
             textRenderer.beginRendering((int) width, (int) height);
@@ -544,7 +536,7 @@ public class RendererPanel extends JPanel implements GLEventListener {
             this.width = canvas.getWidth();
             this.height = canvas.getHeight();
         }
-        glu.gluPerspective(fovY, aspect, 0.1f, 100.0f); // fovy, aspect, zNear, zFar
+        glu.gluPerspective(fovY, aspect, 0.1f, RENDER_DISTANCE); // fovy, aspect, zNear, zFar
 
         // Enable the model-view transform
         gl.glMatrixMode(GL2.GL_MODELVIEW);
