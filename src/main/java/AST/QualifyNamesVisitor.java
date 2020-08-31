@@ -35,6 +35,7 @@ public class QualifyNamesVisitor extends BaseVisitor<AST> {
     @Override
     public AST visit(VariableNode variableNode) {
         AST res = super.visit(variableNode);
+        if (variableNode.getName().startsWith("_")) return res;
         variableNode.setName(qualify(variableNode.getName()));
         return res;
     }
