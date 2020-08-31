@@ -1,13 +1,6 @@
 package editor;
 
-import building.antlr.BuildingLexer;
-import building.antlr.BuildingParser;
-import org.antlr.v4.runtime.CharStreams;
-import org.antlr.v4.runtime.CommonTokenStream;
 import org.apache.commons.math3.geometry.euclidean.threed.Vector3D;
-import org.fife.ui.rsyntaxtextarea.RSyntaxTextArea;
-import org.fife.ui.rsyntaxtextarea.Theme;
-import org.fife.ui.rtextarea.RTextScrollPane;
 import renderer.Building;
 
 import javax.swing.*;
@@ -15,13 +8,8 @@ import javax.swing.filechooser.FileSystemView;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.io.*;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.util.ArrayList;
-import java.util.List;
 
 public class MainWindowFrame extends JFrame {
     private FileEditorPanel fileEditor;
@@ -180,24 +168,6 @@ public class MainWindowFrame extends JFrame {
         }
     }
 
-    private void redrawBuildings() {
-        try {
-            renderer.clearAllBuildings();
-            buildingUpdater.clear();
-            for (BuildingInformation bi : project.getBuildings()) {
-                    Building b = Building.buildFromFile(new File(bi.getFilePath()), bi.getSeed());
-                    if (b == null) continue;
-                    b.setRotationAngle(bi.getRotation());
-                    b.setTranslation(new Vector3D(bi.translation));
-                    buildingUpdater.addHash(b, bi);
-                    renderer.addBuilding(b);
-            }
-            renderer.forceRedraw();
-
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
 
     private JMenuBar createMenu() {
         JMenuBar menuBar = new JMenuBar();

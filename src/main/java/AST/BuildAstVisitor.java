@@ -1,23 +1,70 @@
 package AST;
 
 import building.antlr.BuildingBaseVisitor;
+import building.antlr.BuildingLexer;
 import building.antlr.BuildingParser;
+import editor.SyntaxErrorListener;
+import org.antlr.v4.runtime.CharStreams;
+import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.tree.ParseTree;
 
+import javax.swing.filechooser.FileSystemView;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 
-public class BuildAstVisitor extends BuildingBaseVisitor<AST> {
+public class BuildAstVisitor extends BuildingBaseVisitor<AST>  {
+
+    String basePath = FileSystemView.getFileSystemView().getHomeDirectory().getPath();
+
+    public BuildAstVisitor() {
+    }
+
+    public BuildAstVisitor(String basePath) {
+        this.basePath = basePath;
+    }
+
+    public String getBasePath() {
+        return basePath;
+    }
+
+    public void setBasePath(String basePath) {
+        this.basePath = basePath;
+    }
+
     @Override
     public AST visitProgram(BuildingParser.ProgramContext ctx) {
         ProgramNode program = new ProgramNode();
-        BuildingNode building = (BuildingNode) ctx.plotDecl().accept(this);
+        String s = null;
+        if (ctx.plotDecl() != null) {
+            s = ctx.plotDecl().getText();
+        }
+
+        List<AssignmentNode> assignments = new ArrayList<>();
         List<ShapeDeclarationNode> rules = new ArrayList<>();
+
+        for (BuildingParser.ImportStatementContext importStatement : ctx.importStatement()) {
+            ProgramNode importedProgram = (ProgramNode) importStatement.accept(this);
+            assignments.addAll(importedProgram.getGlobalVariables());
+            rules.addAll(importedProgram.getRules());
+        }
+
+        BuildingNode building = null;
+        if (ctx.plotDecl() != null) {
+            building = (BuildingNode) ctx.plotDecl().accept(this);
+        }
+
         for (BuildingParser.ShapeDeclarationContext ruleCtx : ctx.shapeDeclaration()) {
             rules.add((ShapeDeclarationNode) ruleCtx.accept(this));
         }
-        List<AssignmentNode> assignments = new ArrayList<>();
 
         for (BuildingParser.AssignmentContext ruleCtx : ctx.assignment()) {
             assignments.add((AssignmentNode) ruleCtx.accept(this));
@@ -30,7 +77,36 @@ public class BuildAstVisitor extends BuildingBaseVisitor<AST> {
         return program;
     }
 
+    @Override
+    public AST visitImportStatement(BuildingParser.ImportStatementContext ctx) {
+        String fileName = ctx.STRING().getText().substring(1, ctx.STRING().getText().length() - 1);
 
+        Path filePath = Paths.get(basePath, fileName);
+
+        BuildingLexer lexer = null;
+        try {
+            lexer = new BuildingLexer(CharStreams.fromStream(new FileInputStream(filePath.toString()), StandardCharsets.UTF_8));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        CommonTokenStream tokenStream = new CommonTokenStream(lexer);
+        BuildingParser parser = new BuildingParser(tokenStream);
+        BuildingParser.ProgramContext unit = parser.program();
+        String newBasePath = basePath;
+        if (fileName.contains("/")) {
+            List<String> list = new ArrayList<>(Arrays.asList(fileName.split("/")));
+            list.remove(list.size() - 1);
+            newBasePath = basePath + "/" + String.join("/", list);
+        }
+
+        BuildAstVisitor astCreator = new BuildAstVisitor(newBasePath);
+        ProgramNode imported_program = (ProgramNode) unit.accept(astCreator);
+        QualifyNamesVisitor qualifier = new QualifyNamesVisitor(ctx.NAME().getText());
+        imported_program.accept(qualifier);
+
+        return imported_program;
+    }
 
     @Override
     public AST visitValVariable(BuildingParser.ValVariableContext ctx) {
@@ -47,7 +123,7 @@ public class BuildAstVisitor extends BuildingBaseVisitor<AST> {
     @Override
     public AST visitAssignment(BuildingParser.AssignmentContext ctx) {
         AssignmentNode node = new AssignmentNode();
-        node.setVariable(ctx.VARIABLE().getText());
+        node.setVariable(ctx.qualifiedVariable().getText());
         node.setExpression((ExpressionNode) ctx.expression().accept(this));
         return node;
     }
@@ -55,7 +131,7 @@ public class BuildAstVisitor extends BuildingBaseVisitor<AST> {
     @Override
     public AST visitPlotDecl(BuildingParser.PlotDeclContext ctx) {
         BuildingNode building = new BuildingNode();
-        building.setStartRule(ctx.NAME().getText());
+        building.setStartRule(ctx.qualifiedName().getText());
 
         ArgumentsNode args = (ArgumentsNode) ctx.arguments().accept(this);
         building.setCoordinates(args.getArguments());
@@ -102,7 +178,7 @@ public class BuildAstVisitor extends BuildingBaseVisitor<AST> {
     @Override
     public AST visitPolyCommandName(BuildingParser.PolyCommandNameContext ctx) {
         PolyNameCommandNode node = new PolyNameCommandNode();
-        node.setName(ctx.NAME().getText());
+        node.setName(ctx.getText());
         return node;
     }
 
@@ -319,7 +395,7 @@ public class BuildAstVisitor extends BuildingBaseVisitor<AST> {
     @Override
     public AST visitExpressionFunctionCall(BuildingParser.ExpressionFunctionCallContext ctx) {
         FunctionCallNode function = new FunctionCallNode();
-        function.setFunctionName(ctx.VARIABLE().getText());
+        function.setFunctionName(ctx.qualifiedVariable().getText());
         function.setArguments((ArgumentsNode) ctx.arguments().accept(this));
         return function;
     }
