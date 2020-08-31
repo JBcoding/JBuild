@@ -7,6 +7,7 @@ import com.jogamp.opengl.util.awt.TextRenderer;
 import javafx.util.Pair;
 import org.apache.commons.math3.geometry.euclidean.threed.Vector3D;
 import org.apache.commons.math3.geometry.euclidean.twod.Vector2D;
+import org.apache.commons.math3.linear.MatrixUtils;
 import org.apache.commons.math3.linear.RealMatrix;
 import renderer.Building;
 import renderer.Util;
@@ -533,9 +534,10 @@ public class RendererPanel extends JPanel implements GLEventListener {
         gl.glEnd();
 
         RealMatrix currentRotation = getCurrentRotationMatrix();
+        currentRotation = MatrixUtils.inverse(currentRotation);
         Vector3D xDirection = Util.preMultiplyVector3dMatrix(new Vector3D(1, 0, 0), currentRotation).scalarMultiply(innerRadius * 0.9);
         Vector3D yDirection = Util.preMultiplyVector3dMatrix(new Vector3D(0, 1, 0), currentRotation).scalarMultiply(innerRadius * 0.9);
-        Vector3D zDirection = Util.preMultiplyVector3dMatrix(new Vector3D(0, 0, 1), currentRotation).scalarMultiply(innerRadius * 0.9);
+        Vector3D zDirection = Util.preMultiplyVector3dMatrix(new Vector3D(0, 0, -1), currentRotation).scalarMultiply(innerRadius * 0.9);
 
 
         // X
