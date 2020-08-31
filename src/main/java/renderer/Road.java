@@ -17,13 +17,33 @@ public class Road {
         widthVector = widthVector.normalize();
         widthVector = widthVector.scalarMultiply(2);
 
-        gl.glColor3d(0, 0,0);
-        gl.glBegin(gl.GL_POLYGON);
-        gl.glVertex3d(startPoint.add(widthVector).getX(), 0, startPoint.add(widthVector).getZ());
-        gl.glVertex3d(startPoint.subtract(widthVector).getX(), 0, startPoint.subtract(widthVector).getZ());
-        gl.glVertex3d(endPoint.subtract(widthVector).getX(), 0, endPoint.subtract(widthVector).getZ());
-        gl.glVertex3d(endPoint.add(widthVector).getX(), 0, endPoint.add(widthVector).getZ());
-        gl.glEnd();
+        Vector3D widthVectorLine = widthVector.scalarMultiply(.1);
+
+        double parts = Math.round(startPoint.distance(endPoint));
+        Vector3D diff = endPoint.subtract(startPoint).scalarMultiply(1.0 / parts);
+        for (int i = 0; i < startPoint.distance(endPoint); i++) {
+            Vector3D p1 = startPoint.add(diff.scalarMultiply(i));
+            Vector3D p2 = startPoint.add(diff.scalarMultiply(i + 1));
+
+            gl.glColor3d(0, 0, 0);
+            gl.glBegin(gl.GL_POLYGON);
+            gl.glVertex3d(p1.add(widthVector).getX(), 0, p1.add(widthVector).getZ());
+            gl.glVertex3d(p1.subtract(widthVector).getX(), 0, p1.subtract(widthVector).getZ());
+            gl.glVertex3d(p2.subtract(widthVector).getX(), 0, p2.subtract(widthVector).getZ());
+            gl.glVertex3d(p2.add(widthVector).getX(), 0, p2.add(widthVector).getZ());
+            gl.glEnd();
+
+            if (i % 2 == 0) {
+                gl.glColor3d(1, 1, 1);
+                gl.glBegin(gl.GL_POLYGON);
+                gl.glVertex3d(p1.add(widthVectorLine).getX(), .05, p1.add(widthVectorLine).getZ());
+                gl.glVertex3d(p1.subtract(widthVectorLine).getX(), .05, p1.subtract(widthVectorLine).getZ());
+                gl.glVertex3d(p2.subtract(widthVectorLine).getX(), .05, p2.subtract(widthVectorLine).getZ());
+                gl.glVertex3d(p2.add(widthVectorLine).getX(), .05, p2.add(widthVectorLine).getZ());
+                gl.glEnd();
+            }
+        }
+
     }
 
     public static Vector3D snapStartPoint(Vector3D point) {
