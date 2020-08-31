@@ -1,15 +1,20 @@
 grammar Building;
 
+@header {
+    package building.antlr;
+}
 
-program : (assignment SEMICOLON)*  plotDecl shapeDeclaration* EOF;
+program : importStatement* plotDecl? (shapeDeclaration | assignment SEMICOLON)* EOF;
 
-plotDecl : 'plot' arguments '->' NAME;
+importStatement : 'import' STRING 'as' NAME SEMICOLON;
+
+plotDecl : 'plot' arguments '->' qualifiedName;
 
 shapeDeclaration : NAME '->' polyStatements ;
 
 polyStatements : polyCommand SEMICOLON polyStatements #polyStatementsMultiple
-               | polyCommand SEMICOLON #polyStatementSingle
-               | polyFinalCommand #polyStatementFinal;
+               | polyCommand SEMICOLON? #polyStatementSingle
+               | polyFinalCommand SEMICOLON? #polyStatementFinal;
 
 polyCommand : simpleCommand arguments #polyCommandSimple
             | assignment #polyCommandAssignment;
@@ -17,9 +22,14 @@ polyCommand : simpleCommand arguments #polyCommandSimple
 
 simpleCommand : 'color' | 'translate' | 'translateG' | 'rotateX' | 'rotateY' | 'rotateZ' | 'rotatePX' | 'rotatePY' | 'rotatePZ' | 'scale' | 'polygon';
 
-assignment : VARIABLE ASSIGN expression;
+assignment : qualifiedVariable ASSIGN expression;
 
-polyFinalCommand : NAME #polyCommandName
+qualifiedName : qualifier NAME;
+qualifiedVariable : qualifier VARIABLE;
+
+qualifier : (NAME (DOT NAME)* DOT)?;
+
+polyFinalCommand : qualifiedName #polyCommandName
                  | extrudeCommand #polyExtrudeCommand
                  | splitCommand #polySplitCommand
                  | ifCommand #polyIfCommand;
@@ -30,7 +40,7 @@ extrudeCommand : 'extrude' arguments #extrudeSimple
 
 faceDecl : FACE COLON enclosedPolystatements;
 
-enclosedPolystatements : polyStatements | NAME;
+enclosedPolystatements : polyStatements | qualifiedName;
 
 splitCommand : 'split' LPAREN AXIS RPAREN LBRACE splitDecl (COMMA splitDecl)*  RBRACE splitRepeating?;
 
@@ -48,7 +58,7 @@ expression : LPAREN expression RPAREN #expressionPar
            | expression op=(EQUALS | NOT_EQUALS) expression #expressionEqNeq
            | LPAREN expression COMMA expression RPAREN #expressionPair
            | value #expressionVal
-           | VARIABLE arguments #expressionFunctionCall;
+           | qualifiedVariable arguments #expressionFunctionCall;
 
 
 value : 'true' #valTrue

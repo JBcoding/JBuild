@@ -1,4 +1,7 @@
-// Generated from /home/mathias/gitrepos/jbuild/src/main/antlr4/renderer.Building.g4 by ANTLR 4.8
+// Generated from /home/mathias/gitrepos/jbuild/src/main/antlr4/Building.g4 by ANTLR 4.8
+
+    package building.antlr;
+
 import org.antlr.v4.runtime.tree.ParseTreeListener;
 
 /**
@@ -16,6 +19,16 @@ public interface BuildingListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	void exitProgram(BuildingParser.ProgramContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link BuildingParser#importStatement}.
+	 * @param ctx the parse tree
+	 */
+	void enterImportStatement(BuildingParser.ImportStatementContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link BuildingParser#importStatement}.
+	 * @param ctx the parse tree
+	 */
+	void exitImportStatement(BuildingParser.ImportStatementContext ctx);
 	/**
 	 * Enter a parse tree produced by {@link BuildingParser#plotDecl}.
 	 * @param ctx the parse tree
@@ -116,6 +129,36 @@ public interface BuildingListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	void exitAssignment(BuildingParser.AssignmentContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link BuildingParser#qualifiedName}.
+	 * @param ctx the parse tree
+	 */
+	void enterQualifiedName(BuildingParser.QualifiedNameContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link BuildingParser#qualifiedName}.
+	 * @param ctx the parse tree
+	 */
+	void exitQualifiedName(BuildingParser.QualifiedNameContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link BuildingParser#qualifiedVariable}.
+	 * @param ctx the parse tree
+	 */
+	void enterQualifiedVariable(BuildingParser.QualifiedVariableContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link BuildingParser#qualifiedVariable}.
+	 * @param ctx the parse tree
+	 */
+	void exitQualifiedVariable(BuildingParser.QualifiedVariableContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link BuildingParser#qualifier}.
+	 * @param ctx the parse tree
+	 */
+	void enterQualifier(BuildingParser.QualifierContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link BuildingParser#qualifier}.
+	 * @param ctx the parse tree
+	 */
+	void exitQualifier(BuildingParser.QualifierContext ctx);
 	/**
 	 * Enter a parse tree produced by the {@code polyCommandName}
 	 * labeled alternative in {@link BuildingParser#polyFinalCommand}.

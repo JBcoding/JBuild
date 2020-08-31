@@ -1,4 +1,7 @@
-// Generated from /home/mathias/gitrepos/jbuild/src/main/antlr4/renderer.Building.g4 by ANTLR 4.8
+// Generated from /home/mathias/gitrepos/jbuild/src/main/antlr4/Building.g4 by ANTLR 4.8
+
+    package building.antlr;
+
 import org.antlr.v4.runtime.tree.ParseTreeVisitor;
 
 /**
@@ -15,6 +18,12 @@ public interface BuildingVisitor<T> extends ParseTreeVisitor<T> {
 	 * @return the visitor result
 	 */
 	T visitProgram(BuildingParser.ProgramContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link BuildingParser#importStatement}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitImportStatement(BuildingParser.ImportStatementContext ctx);
 	/**
 	 * Visit a parse tree produced by {@link BuildingParser#plotDecl}.
 	 * @param ctx the parse tree
@@ -74,6 +83,24 @@ public interface BuildingVisitor<T> extends ParseTreeVisitor<T> {
 	 * @return the visitor result
 	 */
 	T visitAssignment(BuildingParser.AssignmentContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link BuildingParser#qualifiedName}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitQualifiedName(BuildingParser.QualifiedNameContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link BuildingParser#qualifiedVariable}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitQualifiedVariable(BuildingParser.QualifiedVariableContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link BuildingParser#qualifier}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitQualifier(BuildingParser.QualifierContext ctx);
 	/**
 	 * Visit a parse tree produced by the {@code polyCommandName}
 	 * labeled alternative in {@link BuildingParser#polyFinalCommand}.

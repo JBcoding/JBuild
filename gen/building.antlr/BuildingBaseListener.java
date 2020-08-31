@@ -1,4 +1,7 @@
-// Generated from /home/mathias/gitrepos/jbuild/src/main/antlr4/renderer.Building.g4 by ANTLR 4.8
+// Generated from /home/mathias/gitrepos/jbuild/src/main/antlr4/Building.g4 by ANTLR 4.8
+
+    package building.antlr;
+
 
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.tree.ErrorNode;
@@ -22,6 +25,18 @@ public class BuildingBaseListener implements BuildingListener {
 	 * <p>The default implementation does nothing.</p>
 	 */
 	@Override public void exitProgram(BuildingParser.ProgramContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterImportStatement(BuildingParser.ImportStatementContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitImportStatement(BuildingParser.ImportStatementContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
@@ -130,6 +145,42 @@ public class BuildingBaseListener implements BuildingListener {
 	 * <p>The default implementation does nothing.</p>
 	 */
 	@Override public void exitAssignment(BuildingParser.AssignmentContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterQualifiedName(BuildingParser.QualifiedNameContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitQualifiedName(BuildingParser.QualifiedNameContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterQualifiedVariable(BuildingParser.QualifiedVariableContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitQualifiedVariable(BuildingParser.QualifiedVariableContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterQualifier(BuildingParser.QualifierContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitQualifier(BuildingParser.QualifierContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *

@@ -4,9 +4,6 @@ import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import renderer.Building;
 
-import java.util.HashMap;
-import java.util.Map;
-
 public class BuildingUpdater implements BuildingChangedListener {
     BiMap<Building, BuildingInformation> map = HashBiMap.create();
     Project project;

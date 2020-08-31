@@ -84,7 +84,7 @@ public class Building {
         }
 
         //Build Abstract Syntax Tree (AST)
-        BuildingBaseVisitor<AST> ASTBuilder = new BuildAstVisitor();
+        BuildingBaseVisitor<AST> ASTBuilder = new BuildAstVisitor(file.getParentFile().getPath());
         AST ast = ASTBuilder.visitProgram(unit);
 
         Building b = new Building(ast, seed);
