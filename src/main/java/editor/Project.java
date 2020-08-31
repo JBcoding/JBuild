@@ -1,5 +1,7 @@
 package editor;
 
+import renderer.Road;
+
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
@@ -31,8 +33,16 @@ public class Project {
         return buildings;
     }
 
-    public void setBuildings(List<BuildingInformation> buildings) {
-        this.buildings = buildings;
+    public void setBuildings(List<BuildingInformation> buildings) { this.buildings = buildings; }
+
+    private List<RoadInformation> roads = new ArrayList<>();
+
+    public List<RoadInformation> getRoads() {
+        return roads;
+    }
+
+    public void setRoads(List<RoadInformation> roads) {
+        this.roads = roads;
     }
 
     public void saveToFile() throws Exception {

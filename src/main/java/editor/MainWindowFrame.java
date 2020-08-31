@@ -2,6 +2,7 @@ package editor;
 
 import org.apache.commons.math3.geometry.euclidean.threed.Vector3D;
 import renderer.Building;
+import renderer.Road;
 
 import javax.swing.*;
 import javax.swing.filechooser.FileSystemView;
@@ -65,7 +66,13 @@ public class MainWindowFrame extends JFrame {
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
+            }
 
+            for (RoadInformation ri : project.getRoads()) {
+                Road r = new Road();
+                r.setStartPoint(new Vector3D(ri.startPoint));
+                r.setEndPoint(new Vector3D(ri.endPoint));
+                renderer.addRoad(r);
             }
             renderer.forceRedraw();
         } catch (Exception e) {
@@ -80,6 +87,7 @@ public class MainWindowFrame extends JFrame {
 
         renderer = new RendererPanel();
         renderer.addBuildingChangedListener(buildingUpdater);
+        renderer.addRoadChangedListener(buildingUpdater);
 
         renderer.addBuildingChangedListener(new BuildingChangedListener() {
             @Override

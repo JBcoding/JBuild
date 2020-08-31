@@ -66,6 +66,7 @@ public class RendererPanel extends JPanel implements GLEventListener {
     GLCanvas canvas = null;
 
     private List<BuildingChangedListener> buildingChangedListeners = new ArrayList<>();
+    private List<RoadChangedListener> roadChangedListeners = new ArrayList<>();
 
     public RendererPanel() {
         super();
@@ -97,6 +98,9 @@ public class RendererPanel extends JPanel implements GLEventListener {
 
     public void addBuildingChangedListener(BuildingChangedListener listener) {
         buildingChangedListeners.add(listener);
+    }
+    public void addRoadChangedListener(RoadChangedListener listener) {
+        roadChangedListeners.add(listener);
     }
 
     public Building getSelectedBuilding() {
@@ -265,6 +269,7 @@ public class RendererPanel extends JPanel implements GLEventListener {
                         selectedRoad = r;
                     } else {
                         selectedRoad.setEndPoint(Road.snapEndPoint(selectedRoad.getStartPoint(), planeIntersectionPoint, e.isShiftDown()));
+                        emitRoadEvent(selectedRoad, RoadChangeType.ADD);
                         selectedRoad = null;
                     }
                     glcanvas.display();
@@ -690,6 +695,13 @@ public class RendererPanel extends JPanel implements GLEventListener {
         this.buildings.add(building);
     }
 
+    public void addRoad(Road road) {
+        if (this.roads == null) {
+            this.roads = new ArrayList<>();
+        }
+        this.roads.add(road);
+    }
+
     public RealMatrix getCurrentRotationMatrix() {
         RealMatrix rotationYAxis = Util.createRotationMatrix((yAngle) / 180 * Math.PI, Vector3D.PLUS_I);
         RealMatrix rotationXAxis = Util.createRotationMatrix((xAngle) / 180 * Math.PI, Vector3D.PLUS_J);
@@ -728,6 +740,12 @@ public class RendererPanel extends JPanel implements GLEventListener {
     private void emitBuildingEvent(Building b, BuildingChangeType type) {
         for (BuildingChangedListener listener : buildingChangedListeners) {
             listener.buildingChanged(b, type);
+        }
+    }
+
+    private void emitRoadEvent(Road r, RoadChangeType type) {
+        for (RoadChangedListener listener : roadChangedListeners) {
+            listener.roadChanged(r, type);
         }
     }
 

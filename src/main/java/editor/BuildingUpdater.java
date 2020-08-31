@@ -3,15 +3,18 @@ package editor;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import renderer.Building;
+import renderer.Road;
 
-public class BuildingUpdater implements BuildingChangedListener {
+public class BuildingUpdater implements BuildingChangedListener, RoadChangedListener {
     BiMap<Building, BuildingInformation> map = HashBiMap.create();
+    BiMap<Road, RoadInformation> roadmap = HashBiMap.create();
     Project project;
 
 
     public void setProject(Project p) {
         this.project = p;
         map = HashBiMap.create();
+        roadmap = HashBiMap.create();
     }
 
     public void addHash(Building b, BuildingInformation bi) {
@@ -20,6 +23,7 @@ public class BuildingUpdater implements BuildingChangedListener {
 
     public void clear() {
         map = HashBiMap.create();
+        roadmap = HashBiMap.create();
     }
 
     @Override
@@ -32,11 +36,7 @@ public class BuildingUpdater implements BuildingChangedListener {
             deleteBuilding(building);
         }
 
-        try {
-            project.saveToFile();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        save();
     }
 
     private void deleteBuilding(Building building) {
@@ -44,6 +44,14 @@ public class BuildingUpdater implements BuildingChangedListener {
         if (bi != null) {
             map.remove(building);
             project.getBuildings().remove(bi);
+        }
+    }
+
+    private void save() {
+        try {
+            project.saveToFile();
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 
@@ -61,6 +69,20 @@ public class BuildingUpdater implements BuildingChangedListener {
             bi.setSeed(building.getSeed());
             map.put(building, bi);
             project.getBuildings().add(bi);
+        }
+    }
+
+    @Override
+    public void roadChanged(Road road, RoadChangeType type) {
+        if (type == RoadChangeType.ADD) {
+            project.getRoads().add(RoadInformation.fromRoad(road));
+            save();
+        } else if (type == RoadChangeType.REMOVE) {
+            RoadInformation ri = roadmap.get(road);
+            if (ri != null) {
+                project.getRoads().remove(ri);
+                save();
+            }
         }
     }
 }
