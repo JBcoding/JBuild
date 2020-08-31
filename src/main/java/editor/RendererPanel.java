@@ -10,6 +10,7 @@ import org.apache.commons.math3.geometry.euclidean.twod.Vector2D;
 import org.apache.commons.math3.linear.MatrixUtils;
 import org.apache.commons.math3.linear.RealMatrix;
 import renderer.Building;
+import renderer.Road;
 import renderer.Util;
 
 import javax.swing.*;
@@ -23,6 +24,7 @@ public class RendererPanel extends JPanel implements GLEventListener {
     private static GLU glu;
     private static final int RENDER_DISTANCE = Integer.parseInt(EditorProperties.getInstance().get("render_distance"));
     List<Building> buildings = new ArrayList<>();
+    List<Road> roads = new ArrayList<>();
 
     private double xAngle = -22.5;
     private double yAngle = 22.5;
@@ -34,6 +36,7 @@ public class RendererPanel extends JPanel implements GLEventListener {
     private boolean debug = false;
 
     private Building selectedBuilding = null;
+    private Road selectedRoad = null;
 
     private boolean draggingModeMove = false;
     private Vector3D originalPlaneIntersectionPoint = null;
@@ -42,6 +45,9 @@ public class RendererPanel extends JPanel implements GLEventListener {
 
     private boolean draggingModeRotate = false;
     private double originalBuildingRotation = 0;
+
+    private boolean pathEditMode = false;
+    private JButton editButton = null;
 
     private Vector3D livePlaneIntersectionPoint = null;
     private Vector3D liveStartPoint = null;
@@ -68,7 +74,8 @@ public class RendererPanel extends JPanel implements GLEventListener {
         RendererPanelMenu menu = new RendererPanelMenu();
         add(menu);
 
-        menu.getAddPathButton().addActionListener((event) -> System.out.println("test"));
+        menu.getAddPathButton().addActionListener((event) -> togglePathEditMode());
+        editButton = menu.getAddPathButton();
 
         final GLProfile profile = GLProfile.get(GLProfile.GL2);
         GLCapabilities capabilities = new GLCapabilities(profile);
@@ -98,6 +105,21 @@ public class RendererPanel extends JPanel implements GLEventListener {
 
     public void setSelectedBuilding(Building selectedBuilding) {
         this.selectedBuilding = selectedBuilding;
+    }
+
+    private void togglePathEditMode() {
+        pathEditMode =! pathEditMode;
+        if (pathEditMode) {
+            editButton.setText("Stop Adding Paths");
+        } else {
+            editButton.setText("Add Path");
+            if (selectedRoad != null) {
+                roads.remove(selectedRoad);
+                selectedRoad = null;
+                canvas.display();
+            }
+        }
+        selectedBuilding = null;
     }
 
     private void setupCanvasListeners(GLCanvas glcanvas) {
@@ -208,7 +230,10 @@ public class RendererPanel extends JPanel implements GLEventListener {
                 liveDirection = ray.getValue();
                 liveStartPoint = ray.getKey();
                 livePlaneIntersectionPoint = Util.getIntersectionPoint(liveStartPoint, liveDirection, Vector3D.ZERO, Vector3D.PLUS_I, Vector3D.PLUS_K);
-                if (livePlaneIntersectionPoint != null && debug) {
+                if (pathEditMode && selectedRoad != null) {
+                    selectedRoad.setEndPoint(Road.snapEndPoint(selectedRoad.getStartPoint(), livePlaneIntersectionPoint, e.isShiftDown()));
+                    glcanvas.display();
+                } else if (livePlaneIntersectionPoint != null && debug) {
                     glcanvas.display();
                 }
             }
@@ -228,6 +253,23 @@ public class RendererPanel extends JPanel implements GLEventListener {
                 } else {
                     self.selectedBuilding = null;
                 }
+
+                if (pathEditMode) {
+                    selectedBuilding = null;
+                    Vector3D planeIntersectionPoint = Util.getIntersectionPoint(startPoint, direction, Vector3D.ZERO, Vector3D.PLUS_I, Vector3D.PLUS_K);
+                    if (selectedRoad == null) {
+                        Road r = new Road();
+                        r.setStartPoint(Road.snapStartPoint(planeIntersectionPoint));
+                        r.setEndPoint(Road.snapStartPoint(planeIntersectionPoint).add(Vector3D.PLUS_I));
+                        roads.add(r);
+                        selectedRoad = r;
+                    } else {
+                        selectedRoad.setEndPoint(Road.snapEndPoint(selectedRoad.getStartPoint(), planeIntersectionPoint, e.isShiftDown()));
+                        selectedRoad = null;
+                    }
+                    glcanvas.display();
+                }
+
                 if (oldSelected != self.selectedBuilding) {
                     glcanvas.display();
                 }
@@ -416,9 +458,11 @@ public class RendererPanel extends JPanel implements GLEventListener {
         gl.glEnd();
 
 
-        //drawing the base
         for (Building building : buildings) {
             building.draw(gl, building == selectedBuilding, debug, position);
+        }
+        for (Road road : roads) {
+            road.draw(gl, road == selectedRoad, debug);
         }
 
 
