@@ -2,17 +2,21 @@ package renderer;
 
 import com.jogamp.opengl.GL2;
 import org.apache.commons.math3.geometry.euclidean.threed.Vector3D;
+import org.apache.commons.math3.geometry.euclidean.twod.Vector2D;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class Road {
     Vector3D startPoint;
     Vector3D endPoint;
 
+    private static double roadWidth = 2;
+
     public void draw(GL2 gl, boolean highlighted, boolean debug) {
         if (startPoint == null || endPoint == null) {
             return;
         }
-
-        double roadWidth = 2;
 
         Vector3D se = startPoint.subtract(endPoint);
         Vector3D widthVector = Util.preMultiplyVector3dMatrix(se, Util.createRotationMatrix(Math.PI / 2, Vector3D.PLUS_J));
@@ -48,7 +52,7 @@ public class Road {
                 gl.glEnd();
             }
 
-            if (debug) {
+            if (debug || highlighted) {
                 Util.drawLine(gl, p1.subtract(widthVector), p1.add(widthVector), 1, 1, 1);
             }
         }
@@ -76,12 +80,44 @@ public class Road {
         }
         gl.glEnd();
 
-        if (debug) {
+        if (debug || highlighted) {
             Util.drawLine(gl, startPoint.add(widthVector), startPoint.subtract(widthVector), 1, 1, 1);
             Util.drawLine(gl, startPoint.subtract(widthVector), endPoint.subtract(widthVector), 1, 1, 1);
             Util.drawLine(gl, endPoint.subtract(widthVector), endPoint.add(widthVector), 1, 1, 1);
             Util.drawLine(gl, endPoint.add(widthVector), startPoint.add(widthVector), 1, 1, 1);
         }
+
+        if (debug && highlighted) {
+            List<Vector3D> points = getBoundingBox();
+            for (int i = 0; i < points.size(); i++) {
+                Util.drawLine(gl, points.get(i), points.get((i + 1) % points.size()), 1, 1, 1);
+            }
+        }
+    }
+
+    private List<Vector3D> getBoundingBox() {
+        Vector3D se = startPoint.subtract(endPoint);
+        Vector3D widthVector = Util.preMultiplyVector3dMatrix(se, Util.createRotationMatrix(Math.PI / 2, Vector3D.PLUS_J));
+        widthVector = widthVector.normalize();
+        widthVector = widthVector.scalarMultiply(roadWidth);
+
+        Vector3D p1 = new Vector3D(startPoint.add(widthVector).getX(), 0, startPoint.add(widthVector).getZ());
+        Vector3D p2 = new Vector3D(startPoint.subtract(widthVector).getX(), 0, startPoint.subtract(widthVector).getZ());
+        Vector3D p3 = new Vector3D(endPoint.subtract(widthVector).getX(), 0, endPoint.subtract(widthVector).getZ());
+        Vector3D p4 = new Vector3D(endPoint.add(widthVector).getX(), 0, endPoint.add(widthVector).getZ());
+
+        p1 = p1.add(se.normalize().scalarMultiply(roadWidth));
+        p2 = p2.add(se.normalize().scalarMultiply(roadWidth));
+        p3 = p3.add(se.normalize().scalarMultiply(-roadWidth));
+        p4 = p4.add(se.normalize().scalarMultiply(-roadWidth));
+
+        List<Vector3D> points = new ArrayList<>();
+        points.add(p1);
+        points.add(p2);
+        points.add(p3);
+        points.add(p4);
+
+        return points;
 
     }
 
@@ -113,6 +149,19 @@ public class Road {
         }
 
         return startPoint.add(new Vector3D(Math.cos(angle), 0, Math.sin(angle)).scalarMultiply(length));
+    }
+
+    public boolean containsPoint(Vector3D point) {
+        List<Vector3D> corners = getBoundingBox();
+        List<Vector2D> corners2D = new ArrayList<>();
+        for (Vector3D c : corners) {
+            corners2D.add(new Vector2D(c.getX(), c.getZ()));
+        }
+
+        Vector2D point2D = new Vector2D(point.getX(), point.getZ());
+
+        return Util.isPointIn2DTriangle(point2D, corners2D.get(0), corners2D.get(1), corners2D.get(2)) ||
+               Util.isPointIn2DTriangle(point2D, corners2D.get(3), corners2D.get(0), corners2D.get(2));
     }
 
     public Vector3D getStartPoint() {

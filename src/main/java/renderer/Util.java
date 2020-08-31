@@ -190,4 +190,20 @@ public class Util {
 
         return result;
     }
+
+    public static boolean isPointIn2DTriangle(Vector2D pt, Vector2D t1, Vector2D t2, Vector2D t3)
+    {
+        double d1, d2, d3;
+        boolean has_neg, has_pos;
+
+        d1 = (pt.getX() - t2.getX()) * (t1.getY() - t2.getY()) - (t1.getX() - t2.getX()) * (pt.getY() - t2.getY());
+        d2 = (pt.getX() - t3.getX()) * (t2.getY() - t3.getY()) - (t2.getX() - t3.getX()) * (pt.getY() - t3.getY());
+        d3 = (pt.getX() - t1.getX()) * (t3.getY() - t1.getY()) - (t3.getX() - t1.getX()) * (pt.getY() - t1.getY());
+
+        has_neg = (d1 < 0) || (d2 < 0) || (d3 < 0);
+        has_pos = (d1 > 0) || (d2 > 0) || (d3 > 0);
+
+        return !(has_neg && has_pos);
+    }
+
 }

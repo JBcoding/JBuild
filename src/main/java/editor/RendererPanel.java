@@ -131,6 +131,16 @@ public class RendererPanel extends JPanel implements GLEventListener {
         selectedBuilding = null;
     }
 
+    private Road getRoadClickedOn(Vector3D startPoint, Vector3D direction) {
+        Vector3D currentPlaneIntersectionPoint = Util.getIntersectionPoint(startPoint, direction, Vector3D.ZERO, Vector3D.PLUS_I, Vector3D.PLUS_K);
+        for (Road road : roads) {
+            if (road.containsPoint(currentPlaneIntersectionPoint)) {
+                return road;
+            }
+        }
+        return null;
+    }
+
     private void setupCanvasListeners(GLCanvas glcanvas) {
         final int[] lastMouseCoords = new int[2];
 
@@ -262,10 +272,13 @@ public class RendererPanel extends JPanel implements GLEventListener {
 
                 Building closestBuilding = getBuildingFromRay(startPoint, direction).getKey();
                 Building oldSelected = self.selectedBuilding;
+                Road oldSelectedRoad = selectedRoad;
                 if (closestBuilding != null) {
                     self.selectedBuilding = closestBuilding;
                 } else {
                     self.selectedBuilding = null;
+                    Road road = getRoadClickedOn(startPoint, direction);
+                    selectedRoad = road;
                 }
 
                 if (pathEditMode) {
@@ -279,8 +292,6 @@ public class RendererPanel extends JPanel implements GLEventListener {
                     if (selectedRoad != null) {
                         selectedRoad.setEndPoint(Road.snapEndPoint(selectedRoad.getStartPoint(), planeIntersectionPoint, e.isShiftDown()));
                         emitRoadEvent(selectedRoad, RoadChangeType.ADD);
-                        selectedRoad = null;
-
                     }
                     Vector3D roadStartPoint = Road.snapStartPoint(planeIntersectionPoint);
                     if (selectedRoad != null) {
@@ -293,11 +304,9 @@ public class RendererPanel extends JPanel implements GLEventListener {
                     roads.add(r);
                     selectedRoad = r;
 
-
-                    glcanvas.display();
                 }
 
-                if (oldSelected != self.selectedBuilding) {
+                if (oldSelected != selectedBuilding || oldSelectedRoad != selectedRoad) {
                     glcanvas.display();
                 }
             }
@@ -409,6 +418,13 @@ public class RendererPanel extends JPanel implements GLEventListener {
                         selectedBuilding = null;
                         draggingModeMove = false;
                         draggingModeRotate = false;
+                        canvas.display();
+                    }
+                    if (selectedRoad != null) {
+                        emitRoadEvent(selectedRoad, RoadChangeType.REMOVE);
+                        roads.remove(selectedRoad);
+                        selectedRoad = null;
+                        canvas.display();
                     }
                 }
 
