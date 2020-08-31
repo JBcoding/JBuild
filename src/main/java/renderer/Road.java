@@ -2,24 +2,29 @@ package renderer;
 
 import com.jogamp.opengl.GL2;
 import org.apache.commons.math3.geometry.euclidean.threed.Vector3D;
-import org.apache.commons.math3.geometry.euclidean.twod.Vector2D;
 
 public class Road {
     Vector3D startPoint;
     Vector3D endPoint;
 
     public void draw(GL2 gl, boolean highlighted, boolean debug) {
+        if (startPoint == null || endPoint == null) {
+            return;
+        }
+
+        double roadWidth = 2;
+
         Vector3D se = startPoint.subtract(endPoint);
         Vector3D widthVector = Util.preMultiplyVector3dMatrix(se, Util.createRotationMatrix(Math.PI / 2, Vector3D.PLUS_J));
         if (widthVector.distance(Vector3D.ZERO) <= 0.0001d) {
             return;
         }
         widthVector = widthVector.normalize();
-        widthVector = widthVector.scalarMultiply(2);
+        widthVector = widthVector.scalarMultiply(roadWidth);
 
         Vector3D widthVectorLine = widthVector.scalarMultiply(.1);
 
-        double parts = Math.round(startPoint.distance(endPoint));
+        double parts = Math.ceil(startPoint.distance(endPoint));
         Vector3D diff = endPoint.subtract(startPoint).scalarMultiply(1.0 / parts);
         for (int i = 0; i < startPoint.distance(endPoint); i++) {
             Vector3D p1 = startPoint.add(diff.scalarMultiply(i));
@@ -42,6 +47,40 @@ public class Road {
                 gl.glVertex3d(p2.add(widthVectorLine).getX(), .05, p2.add(widthVectorLine).getZ());
                 gl.glEnd();
             }
+
+            if (debug) {
+                Util.drawLine(gl, p1.subtract(widthVector), p1.add(widthVector), 1, 1, 1);
+            }
+        }
+
+        // add rounded ending
+        double angle = Math.atan2(se.getZ(), se.getX());
+        parts = 10;
+        gl.glColor3d(0, 0, 0);
+        gl.glBegin(gl.GL_POLYGON);
+        for (int i = 0; i <= parts; i++) {
+            double localAngle = angle + (double)i / parts * Math.PI - Math.PI / 2;
+            Vector3D point = new Vector3D(Math.cos(localAngle), 0, Math.sin(localAngle));
+            point = point.scalarMultiply(roadWidth);
+            point = point.add(startPoint);
+            gl.glVertex3d(point.getX(), point.getY(), point.getZ());
+        }
+        gl.glEnd();
+        gl.glBegin(gl.GL_POLYGON);
+        for (int i = 0; i <= parts; i++) {
+            double localAngle = angle + (double)i / parts * Math.PI + Math.PI / 2;
+            Vector3D point = new Vector3D(Math.cos(localAngle), 0, Math.sin(localAngle));
+            point = point.scalarMultiply(roadWidth);
+            point = point.add(endPoint);
+            gl.glVertex3d(point.getX(), point.getY(), point.getZ());
+        }
+        gl.glEnd();
+
+        if (debug) {
+            Util.drawLine(gl, startPoint.add(widthVector), startPoint.subtract(widthVector), 1, 1, 1);
+            Util.drawLine(gl, startPoint.subtract(widthVector), endPoint.subtract(widthVector), 1, 1, 1);
+            Util.drawLine(gl, endPoint.subtract(widthVector), endPoint.add(widthVector), 1, 1, 1);
+            Util.drawLine(gl, endPoint.add(widthVector), startPoint.add(widthVector), 1, 1, 1);
         }
 
     }

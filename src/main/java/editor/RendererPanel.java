@@ -37,6 +37,7 @@ public class RendererPanel extends JPanel implements GLEventListener {
 
     private Building selectedBuilding = null;
     private Road selectedRoad = null;
+    private boolean previewRoad = false;
 
     private boolean draggingModeMove = false;
     private Vector3D originalPlaneIntersectionPoint = null;
@@ -115,6 +116,10 @@ public class RendererPanel extends JPanel implements GLEventListener {
         pathEditMode =! pathEditMode;
         if (pathEditMode) {
             editButton.setText("Stop Adding Paths");
+            Road r = new Road();
+            selectedRoad = r;
+            roads.add(r);
+            previewRoad = true;
         } else {
             editButton.setText("Add Path");
             if (selectedRoad != null) {
@@ -234,8 +239,13 @@ public class RendererPanel extends JPanel implements GLEventListener {
                 liveDirection = ray.getValue();
                 liveStartPoint = ray.getKey();
                 livePlaneIntersectionPoint = Util.getIntersectionPoint(liveStartPoint, liveDirection, Vector3D.ZERO, Vector3D.PLUS_I, Vector3D.PLUS_K);
-                if (pathEditMode && selectedRoad != null) {
-                    selectedRoad.setEndPoint(Road.snapEndPoint(selectedRoad.getStartPoint(), livePlaneIntersectionPoint, e.isShiftDown()));
+                if (pathEditMode) {
+                    if (previewRoad) {
+                        selectedRoad.setStartPoint(Road.snapStartPoint(livePlaneIntersectionPoint));
+                        selectedRoad.setEndPoint(Road.snapStartPoint(livePlaneIntersectionPoint).add(new Vector3D(.01, 0, 0)));
+                    } else {
+                        selectedRoad.setEndPoint(Road.snapEndPoint(selectedRoad.getStartPoint(), livePlaneIntersectionPoint, e.isShiftDown()));
+                    }
                     glcanvas.display();
                 } else if (livePlaneIntersectionPoint != null && debug) {
                     glcanvas.display();
@@ -260,18 +270,30 @@ public class RendererPanel extends JPanel implements GLEventListener {
 
                 if (pathEditMode) {
                     selectedBuilding = null;
+                    if (previewRoad) {
+                        roads.remove(selectedRoad);
+                        selectedRoad = null;
+                    }
+                    previewRoad = false;
                     Vector3D planeIntersectionPoint = Util.getIntersectionPoint(startPoint, direction, Vector3D.ZERO, Vector3D.PLUS_I, Vector3D.PLUS_K);
-                    if (selectedRoad == null) {
-                        Road r = new Road();
-                        r.setStartPoint(Road.snapStartPoint(planeIntersectionPoint));
-                        r.setEndPoint(Road.snapStartPoint(planeIntersectionPoint).add(Vector3D.PLUS_I));
-                        roads.add(r);
-                        selectedRoad = r;
-                    } else {
+                    if (selectedRoad != null) {
                         selectedRoad.setEndPoint(Road.snapEndPoint(selectedRoad.getStartPoint(), planeIntersectionPoint, e.isShiftDown()));
                         emitRoadEvent(selectedRoad, RoadChangeType.ADD);
                         selectedRoad = null;
+
                     }
+                    Vector3D roadStartPoint = Road.snapStartPoint(planeIntersectionPoint);
+                    if (selectedRoad != null) {
+                        roadStartPoint = selectedRoad.getEndPoint();
+                    }
+
+                    Road r = new Road();
+                    r.setStartPoint(roadStartPoint);
+                    r.setEndPoint(roadStartPoint.add(Vector3D.PLUS_I));
+                    roads.add(r);
+                    selectedRoad = r;
+
+
                     glcanvas.display();
                 }
 
@@ -380,7 +402,7 @@ public class RendererPanel extends JPanel implements GLEventListener {
                     glcanvas.display();
                 }
 
-                if (e.getExtendedKeyCode() == 127) { // delete
+                if (e.getExtendedKeyCode() == 127 || e.getExtendedKeyCode() == 8) { // delete
                     if (selectedBuilding != null) {
                         buildings.remove(selectedBuilding);
                         emitBuildingEvent(selectedBuilding, BuildingChangeType.DELETED);
@@ -393,6 +415,19 @@ public class RendererPanel extends JPanel implements GLEventListener {
                 if (e.getExtendedKeyCode() == 71) { // G
                     if (selectedBuilding != null) {
                         emitBuildingEvent(selectedBuilding, BuildingChangeType.REGENERATE_REQUESTED);
+                    }
+                }
+
+                if (e.getExtendedKeyCode() == 27) { // esc
+                    if (pathEditMode && selectedRoad != null) {
+                        roads.remove(selectedRoad);
+                        selectedRoad = null;
+                        canvas.display();
+
+                        Road r = new Road();
+                        roads.add(r);
+                        selectedRoad = r;
+                        previewRoad = true;
                     }
                 }
             }
@@ -669,7 +704,7 @@ public class RendererPanel extends JPanel implements GLEventListener {
             this.width = canvas.getWidth();
             this.height = canvas.getHeight();
         }
-        glu.gluPerspective(fovY, aspect, 0.1f, RENDER_DISTANCE); // fovy, aspect, zNear, zFar
+        glu.gluPerspective(fovY, aspect, 1f, RENDER_DISTANCE); // fovy, aspect, zNear, zFar
 
         // Enable the model-view transform
         gl.glMatrixMode(GL2.GL_MODELVIEW);
