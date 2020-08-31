@@ -4,7 +4,7 @@ grammar Building;
     package building.antlr;
 }
 
-program : importStatement* plotDecl? (shapeDeclaration | assignment SEMICOLON)* EOF;
+program : importStatement*  (shapeDeclaration | assignment SEMICOLON | plotDecl)* EOF;
 
 importStatement : 'import' STRING 'as' NAME SEMICOLON;
 

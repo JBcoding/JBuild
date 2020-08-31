@@ -353,7 +353,7 @@ public class ShapeGeneratorVisitor implements ASTVisitor<List<Shape>> {
     @Override
     public List<Shape> visit(ProgramNode programNode) {
         symbolTable.push();
-        List<Shape> shapes;
+        List<Shape> shapes = new ArrayList<>();
         rulesMap = new HashMap<>();
         for (ShapeDeclarationNode shapeDeclarationNode : programNode.getRules()) {
             rulesMap.put(shapeDeclarationNode.getName(), shapeDeclarationNode);
@@ -363,7 +363,20 @@ public class ShapeGeneratorVisitor implements ASTVisitor<List<Shape>> {
             as.accept(this);
         }
 
-        shapes = (List<Shape>)programNode.getBuilding().accept(this);
+        for (BuildingNode building : programNode.getBuildings()) {
+            double minX = Double.MAX_VALUE, minY = Double.MAX_VALUE;
+            for (ExpressionNode coord :  building.getCoordinates()) {
+                coord.accept(this);
+                Pair<Double, Double> pair = (Pair<Double, Double>) coord.getValue();
+                minX = Math.min(pair.getKey(), minX);
+                minY = Math.min(pair.getKey(), minY);
+            }
+            List<Shape> polys = (List<Shape>) building.accept(this);
+            for (Shape poly : polys) {
+                poly.setTranslation(poly.getTranslation().add(new Vector3D(minX, 0, minY)));
+            }
+            shapes.addAll(polys);
+        }
 
         return shapes;
     }

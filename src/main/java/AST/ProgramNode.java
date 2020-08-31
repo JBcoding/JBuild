@@ -3,7 +3,7 @@ package AST;
 import java.util.List;
 
 public class ProgramNode extends AST {
-    BuildingNode building;
+    List<BuildingNode> buildings;
     List<ShapeDeclarationNode> rules;
     List<AssignmentNode> globalVariables;
 
@@ -15,12 +15,12 @@ public class ProgramNode extends AST {
         this.globalVariables = globalVariables;
     }
 
-    public BuildingNode getBuilding() {
-        return building;
+    public List<BuildingNode> getBuildings() {
+        return buildings;
     }
 
-    public void setBuilding(BuildingNode building) {
-        this.building = building;
+    public void setBuildings(List<BuildingNode> buildings) {
+        this.buildings = buildings;
     }
 
     public List<ShapeDeclarationNode> getRules() {

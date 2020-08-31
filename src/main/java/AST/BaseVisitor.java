@@ -147,9 +147,10 @@ public abstract class BaseVisitor<T> implements ASTVisitor<T> {
             shape.accept(this);
         }
 
-        if (programNode.getBuilding() != null) {
-            return (T) programNode.getBuilding().accept(this);
+        for (BuildingNode building: programNode.getBuildings()) {
+            building.accept(this);
         }
+
         return null;
     }
 

@@ -43,10 +43,6 @@ public class BuildAstVisitor extends BuildingBaseVisitor<AST>  {
     @Override
     public AST visitProgram(BuildingParser.ProgramContext ctx) {
         ProgramNode program = new ProgramNode();
-        String s = null;
-        if (ctx.plotDecl() != null) {
-            s = ctx.plotDecl().getText();
-        }
 
         List<AssignmentNode> assignments = new ArrayList<>();
         List<ShapeDeclarationNode> rules = new ArrayList<>();
@@ -57,9 +53,9 @@ public class BuildAstVisitor extends BuildingBaseVisitor<AST>  {
             rules.addAll(importedProgram.getRules());
         }
 
-        BuildingNode building = null;
-        if (ctx.plotDecl() != null) {
-            building = (BuildingNode) ctx.plotDecl().accept(this);
+        List<BuildingNode> buildings = new ArrayList<BuildingNode>();
+        for (BuildingParser.PlotDeclContext plot : ctx.plotDecl()) {
+            buildings.add((BuildingNode) plot.accept(this));
         }
 
         for (BuildingParser.ShapeDeclarationContext ruleCtx : ctx.shapeDeclaration()) {
@@ -70,7 +66,7 @@ public class BuildAstVisitor extends BuildingBaseVisitor<AST>  {
             assignments.add((AssignmentNode) ruleCtx.accept(this));
         }
 
-        program.setBuilding(building);
+        program.setBuildings(buildings);
         program.setRules(rules);
         program.setGlobalVariables(assignments);
 
