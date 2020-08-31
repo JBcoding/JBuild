@@ -122,6 +122,9 @@ public class Road {
     }
 
     public static Vector3D snapStartPoint(Vector3D point) {
+        if (point == null) {
+            return null;
+        }
         return new Vector3D(Math.round(point.getX()), 0, Math.round(point.getZ()));
     }
 
