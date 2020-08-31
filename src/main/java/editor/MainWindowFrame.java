@@ -61,7 +61,7 @@ public class MainWindowFrame extends JFrame {
                     Building b = Building.buildFromFile(new File(bi.getFilePath()), bi.getSeed());
                     b.setTranslation(new Vector3D(bi.translation));
                     b.setRotationAngle(bi.getRotation());
-                    buildingUpdater.addHash(b, bi);
+                    buildingUpdater.addBuildingHash(b, bi);
                     renderer.addBuilding(b);
                 } catch (IOException e) {
                     e.printStackTrace();
@@ -72,6 +72,7 @@ public class MainWindowFrame extends JFrame {
                 Road r = new Road();
                 r.setStartPoint(new Vector3D(ri.startPoint));
                 r.setEndPoint(new Vector3D(ri.endPoint));
+                buildingUpdater.addRoadHash(r, ri);
                 renderer.addRoad(r);
             }
             renderer.forceRedraw();
@@ -163,7 +164,7 @@ public class MainWindowFrame extends JFrame {
             if (b == null) return null;
             buildingUpdater.map.remove(b);
             renderer.buildings.remove(b);
-            buildingUpdater.addHash(newBuilding, bi);
+            buildingUpdater.addBuildingHash(newBuilding, bi);
             newBuilding.setRotationAngle(bi.getRotation());
             newBuilding.setTranslation(new Vector3D(bi.translation));
             renderer.addBuilding(newBuilding);

@@ -17,8 +17,11 @@ public class BuildingUpdater implements BuildingChangedListener, RoadChangedList
         roadmap = HashBiMap.create();
     }
 
-    public void addHash(Building b, BuildingInformation bi) {
+    public void addBuildingHash(Building b, BuildingInformation bi) {
         map.put(b, bi);
+    }
+    public void addRoadHash(Road r, RoadInformation ri) {
+        roadmap.put(r, ri);
     }
 
     public void clear() {
@@ -75,11 +78,14 @@ public class BuildingUpdater implements BuildingChangedListener, RoadChangedList
     @Override
     public void roadChanged(Road road, RoadChangeType type) {
         if (type == RoadChangeType.ADD) {
-            project.getRoads().add(RoadInformation.fromRoad(road));
+            RoadInformation ri = RoadInformation.fromRoad(road);
+            project.getRoads().add(ri);
+            roadmap.put(road, ri);
             save();
         } else if (type == RoadChangeType.REMOVE) {
             RoadInformation ri = roadmap.get(road);
             if (ri != null) {
+                roadmap.remove(road);
                 project.getRoads().remove(ri);
                 save();
             }
