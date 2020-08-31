@@ -25,6 +25,7 @@ public class EditorProperties {
             properties = defaultProps;
         }
         properties = appProps;
+        System.out.println(properties.getProperty("render_distance"));
     }
 
     public String get(String key) {

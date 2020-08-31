@@ -21,7 +21,7 @@ import java.util.List;
 
 public class RendererPanel extends JPanel implements GLEventListener {
     private static GLU glu;
-    private static final int RENDER_DISTANCE = 200;
+    private static final int RENDER_DISTANCE = Integer.parseInt(EditorProperties.getInstance().get("render_distance"));
     List<Building> buildings = new ArrayList<>();
 
     private double xAngle = -22.5;
@@ -64,6 +64,11 @@ public class RendererPanel extends JPanel implements GLEventListener {
     public RendererPanel() {
         super();
         setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
+
+        RendererPanelMenu menu = new RendererPanelMenu();
+        add(menu);
+
+        menu.addPathClickedListener((event) -> System.out.println("test"));
 
         final GLProfile profile = GLProfile.get(GLProfile.GL2);
         GLCapabilities capabilities = new GLCapabilities(profile);
@@ -418,7 +423,7 @@ public class RendererPanel extends JPanel implements GLEventListener {
 
 
         gl.glLineWidth(2);
-        for (int i = -RENDER_DISTANCE / 2; i <= RENDER_DISTANCE / 2; i++) {
+        for (int i = -RENDER_DISTANCE; i <= RENDER_DISTANCE; i++) {
             gl.glColor3d( 0.6, 0.6, 0.6);
             gl.glBegin(GL2.GL_LINES);
             gl.glVertex3d((int)position.getX() - RENDER_DISTANCE, -.05, (int)position.getZ() + i);
@@ -503,8 +508,8 @@ public class RendererPanel extends JPanel implements GLEventListener {
         double innerRadius = outerRadius * 0.9;
 
         double[] wcoord = new double[4];
-        int pixelX = 40;
-        int pixelY = 40;
+        int pixelX = 50;
+        int pixelY = 50;
         glu.gluUnProject((double) pixelX, (double) pixelY, 1.0, mvmatrix, 0, projmatrix, 0, viewport, 0, wcoord, 0);
         Vector3D center = new Vector3D(wcoord[0], wcoord[1], wcoord[2]).normalize().scalarMultiply(30);
 
