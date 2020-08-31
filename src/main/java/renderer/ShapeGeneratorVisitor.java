@@ -369,7 +369,7 @@ public class ShapeGeneratorVisitor implements ASTVisitor<List<Shape>> {
                 coord.accept(this);
                 Pair<Double, Double> pair = (Pair<Double, Double>) coord.getValue();
                 minX = Math.min(pair.getKey(), minX);
-                minY = Math.min(pair.getKey(), minY);
+                minY = Math.min(pair.getValue(), minY);
             }
             List<Shape> polys = (List<Shape>) building.accept(this);
             for (Shape poly : polys) {
