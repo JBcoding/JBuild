@@ -152,15 +152,15 @@ public class RendererPanel extends JPanel implements GLEventListener {
 
                     if (!e.isShiftDown()) {
                         deltaAngle /= Math.PI;
-                        deltaAngle *= 16;
+                        deltaAngle *= 32;
                         deltaAngle = (int) deltaAngle;
-                        deltaAngle /= 16;
+                        deltaAngle /= 32;
                         deltaAngle *= Math.PI;
                     } else {
                         deltaAngle /= Math.PI;
-                        deltaAngle *= 128;
+                        deltaAngle *= 256;
                         deltaAngle = (int) deltaAngle;
-                        deltaAngle /= 128;
+                        deltaAngle /= 256;
                         deltaAngle *= Math.PI;
                     }
 
@@ -387,11 +387,11 @@ public class RendererPanel extends JPanel implements GLEventListener {
         gl.glShadeModel(gl.GL_SMOOTH);
         gl.glColor3d(135 / 255.0, 206 / 255.0, 235 / 255.0);
         gl.glBegin(GL2.GL_POLYGON);
-        gl.glVertex3d(-RENDER_DISTANCE, RENDER_DISTANCE, -RENDER_DISTANCE);
-        gl.glVertex3d(RENDER_DISTANCE, RENDER_DISTANCE, -RENDER_DISTANCE);
+        gl.glVertex3d(-RENDER_DISTANCE, RENDER_DISTANCE / 2, -RENDER_DISTANCE + 10);
+        gl.glVertex3d(RENDER_DISTANCE, RENDER_DISTANCE / 2, -RENDER_DISTANCE + 10);
         gl.glColor3d(0 / 255.0, 28 / 255.0, 124 / 255.0);
-        gl.glVertex3d(RENDER_DISTANCE, -RENDER_DISTANCE, -RENDER_DISTANCE);
-        gl.glVertex3d(-RENDER_DISTANCE, -RENDER_DISTANCE, -RENDER_DISTANCE);
+        gl.glVertex3d(RENDER_DISTANCE, -RENDER_DISTANCE / 2, -RENDER_DISTANCE + 10);
+        gl.glVertex3d(-RENDER_DISTANCE, -RENDER_DISTANCE / 2, -RENDER_DISTANCE + 10);
         gl.glEnd();
 
 
@@ -417,7 +417,7 @@ public class RendererPanel extends JPanel implements GLEventListener {
 
 
         gl.glLineWidth(2);
-        for (int i = -RENDER_DISTANCE; i <= RENDER_DISTANCE; i++) {
+        for (int i = -RENDER_DISTANCE / 2; i <= RENDER_DISTANCE / 2; i++) {
             gl.glColor3d( 0.6, 0.6, 0.6);
             gl.glBegin(GL2.GL_LINES);
             gl.glVertex3d((int)position.getX() - RENDER_DISTANCE, -.05, (int)position.getZ() + i);
@@ -484,11 +484,9 @@ public class RendererPanel extends JPanel implements GLEventListener {
         lastFrameRenderTimes[(lastFrameRenderTimesIndex++) % lastFrameRenderTimes.length] = deltaTime;
 
         // Restore original (no-) translation and rotation
-        gl.glTranslated(position.getX(), position.getY(), position.getZ());
-        gl.glRotated(-xAngle, 0.0f, 1.0f, 0.0f);
-        gl.glRotated(-yAngle, 1.0f, 0.0f, 0.0f);
+        gl.glLoadIdentity();
 
-        //renderCompass(gl);
+        renderCompass(gl);
 
 
     }
@@ -502,29 +500,35 @@ public class RendererPanel extends JPanel implements GLEventListener {
         gl.glBegin(GL2.GL_POLYGON);
         double outerRadius = 1;
         double innerRadius = outerRadius * 0.9;
-        Vector2D center = new Vector2D(0, 0);
-        double x = center.getX(), y = center.getY();
+
+        double[] wcoord = new double[4];
+        int pixelX = 40;
+        int pixelY = 40;
+        glu.gluUnProject((double) pixelX, (double) pixelY, 1.0, mvmatrix, 0, projmatrix, 0, viewport, 0, wcoord, 0);
+        Vector3D center = new Vector3D(wcoord[0], wcoord[1], wcoord[2]).normalize().scalarMultiply(30);
+
+        double x = center.getX(), y = center.getY(), z = center.getZ();
         int sections = 20;
-        gl.glVertex3d(x, y, -30);
+        gl.glVertex3d(x, y, z);
         for (int i = 0; i <= sections; i++) {
             Vector2D newPoint = new Vector2D(
                     x + (outerRadius * Math.cos(i / (double)sections * (Math.PI * 2))),
                     y + (outerRadius * Math.sin(i / (double)sections * (Math.PI * 2)))
             );
-            gl.glVertex3d(newPoint.getX(), newPoint.getY(), -30);
+            gl.glVertex3d(newPoint.getX(), newPoint.getY(), z);
         }
         gl.glEnd();
 
         gl.glClear(GL2.GL_DEPTH_BUFFER_BIT);
         gl.glBegin(GL2.GL_POLYGON);
         gl.glColor3d(0.9, 0.9, 0.9);
-        gl.glVertex3d(x, y, -30);
+        gl.glVertex3d(x, y, z);
         for (int i = 0; i <= sections; i++) {
             Vector2D newPoint = new Vector2D(
                     x + (innerRadius * Math.cos(i / (double)sections * (Math.PI * 2))),
                     y + (innerRadius * Math.sin(i / (double)sections * (Math.PI * 2)))
             );
-            gl.glVertex3d(newPoint.getX(), newPoint.getY(), -30);
+            gl.glVertex3d(newPoint.getX(), newPoint.getY(), z);
         }
         gl.glEnd();
 
@@ -538,22 +542,22 @@ public class RendererPanel extends JPanel implements GLEventListener {
         gl.glColor3d(1, 0, 0);
         gl.glClear(GL2.GL_DEPTH_BUFFER_BIT);
         gl.glBegin(GL2.GL_LINES);
-        gl.glVertex3d(x, y, -30);
-        gl.glVertex3d(x + xDirection.getX() , y + xDirection.getY(), -30 + xDirection.getZ());
+        gl.glVertex3d(x, y, z);
+        gl.glVertex3d(x + xDirection.getX() , y + xDirection.getY(), z + xDirection.getZ());
         gl.glEnd();
 
         // Y
         gl.glColor3d(0, 1, 0);
         gl.glBegin(GL2.GL_LINES);
-        gl.glVertex3d(x, y, -30);
-        gl.glVertex3d(x + yDirection.getX() , y + yDirection.getY(), -30 + yDirection.getZ());
+        gl.glVertex3d(x, y, z);
+        gl.glVertex3d(x + yDirection.getX() , y + yDirection.getY(), z + yDirection.getZ());
         gl.glEnd();
 
         // Z
         gl.glColor3d(0, 0, 1);
         gl.glBegin(GL2.GL_LINES);
-        gl.glVertex3d(x, y, -30);
-        gl.glVertex3d(x + zDirection.getX() , y + zDirection.getY(), -30 + zDirection.getZ());
+        gl.glVertex3d(x, y, z);
+        gl.glVertex3d(x + zDirection.getX() , y + zDirection.getY(), z + zDirection.getZ());
         gl.glEnd();
     }
 
