@@ -14,7 +14,7 @@ public class RendererPanelMenu extends JPanel {
         add(addPathButton);
     }
 
-    public void addPathClickedListener(ActionListener l) {
-        addPathButton.addActionListener(l);
+    public JButton getAddPathButton() {
+        return addPathButton;
     }
 }

@@ -68,7 +68,7 @@ public class RendererPanel extends JPanel implements GLEventListener {
         RendererPanelMenu menu = new RendererPanelMenu();
         add(menu);
 
-        menu.addPathClickedListener((event) -> System.out.println("test"));
+        menu.getAddPathButton().addActionListener((event) -> System.out.println("test"));
 
         final GLProfile profile = GLProfile.get(GLProfile.GL2);
         GLCapabilities capabilities = new GLCapabilities(profile);
