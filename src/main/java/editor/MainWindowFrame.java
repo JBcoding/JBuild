@@ -148,9 +148,10 @@ public class MainWindowFrame extends JFrame {
     }
 
     private void redrawFromFile(File file) {
+        renderer.clearSelection();
         for (BuildingInformation bi : project.getBuildings()) {
             if (file.getAbsolutePath().equals(bi.getFilePath())) {
-                Building b = buildingUpdater.map.inverse().get(bi);
+                Building b = buildingUpdater.getBuilding(bi);
                 redrawBuilding(b);
             }
         }
@@ -158,11 +159,11 @@ public class MainWindowFrame extends JFrame {
 
     private Building redrawBuilding(Building b) {
         try {
-            BuildingInformation bi = buildingUpdater.map.get(b);
+            BuildingInformation bi = buildingUpdater.getBuildingInformation(b);
             bi.setSeed(System.nanoTime());
             Building newBuilding = Building.buildFromFile(new File(bi.getFilePath()), bi.getSeed());
-            if (b == null) return null;
-            buildingUpdater.map.remove(b);
+            if (b == null || newBuilding == null) return null;
+            buildingUpdater.removeBuilding(b);
             renderer.buildings.remove(b);
             buildingUpdater.addBuildingHash(newBuilding, bi);
             newBuilding.setRotationAngle(bi.getRotation());

@@ -6,8 +6,8 @@ import renderer.Building;
 import renderer.Road;
 
 public class BuildingUpdater implements BuildingChangedListener, RoadChangedListener {
-    BiMap<Building, BuildingInformation> map = HashBiMap.create();
-    BiMap<Road, RoadInformation> roadmap = HashBiMap.create();
+    private BiMap<Building, BuildingInformation> map = HashBiMap.create();
+    private BiMap<Road, RoadInformation> roadmap = HashBiMap.create();
     Project project;
 
 
@@ -15,6 +15,18 @@ public class BuildingUpdater implements BuildingChangedListener, RoadChangedList
         this.project = p;
         map = HashBiMap.create();
         roadmap = HashBiMap.create();
+    }
+
+    public void removeBuilding(Building b) {
+        map.remove(b);
+    }
+
+    public BuildingInformation getBuildingInformation(Building b) {
+        return map.get(b);
+    }
+
+    public Building getBuilding(BuildingInformation bi) {
+        return map.inverse().get(bi);
     }
 
     public void addBuildingHash(Building b, BuildingInformation bi) {
@@ -34,7 +46,7 @@ public class BuildingUpdater implements BuildingChangedListener, RoadChangedList
         if (project == null) return;
 
         if (type == BuildingChangeType.MOVED) {
-            updateBuiliding(building);
+            updateBuilding(building);
         } else if (type == BuildingChangeType.DELETED) {
             deleteBuilding(building);
         }
@@ -58,7 +70,7 @@ public class BuildingUpdater implements BuildingChangedListener, RoadChangedList
         }
     }
 
-    private void updateBuiliding(Building building) {
+    private void updateBuilding(Building building) {
         if (map.containsKey(building)) {
             BuildingInformation bi = map.get(building);
             bi.setRotation(building.getRotationAngle());

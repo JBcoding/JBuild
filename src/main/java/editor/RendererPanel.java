@@ -808,6 +808,10 @@ public class RendererPanel extends JPanel implements GLEventListener {
         canvas.display();
     }
 
+    public void clearSelection() {
+        this.selectedBuilding = null;
+    }
+
     public void clearAllBuildings() {
         this.buildings = new ArrayList<>();
         this.selectedBuilding = null;
