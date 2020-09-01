@@ -148,11 +148,14 @@ public class MainWindowFrame extends JFrame {
     }
 
     private void redrawFromFile(File file) {
-        renderer.clearSelection();
+        Building sel = renderer.getSelectedBuilding();
         for (BuildingInformation bi : project.getBuildings()) {
             if (file.getAbsolutePath().equals(bi.getFilePath())) {
                 Building b = buildingUpdater.getBuilding(bi);
-                redrawBuilding(b);
+                Building newBuilding = redrawBuilding(b);
+                if (sel == b) {
+                    renderer.setSelectedBuilding(newBuilding);
+                }
             }
         }
     }

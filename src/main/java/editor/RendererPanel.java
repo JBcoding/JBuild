@@ -16,6 +16,7 @@ import renderer.Util;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
+import java.nio.FloatBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -23,6 +24,7 @@ import java.util.List;
 public class RendererPanel extends JPanel implements GLEventListener {
     private static GLU glu;
     private static final int RENDER_DISTANCE = Integer.parseInt(EditorProperties.getInstance().get("render_distance"));
+    private static final int GRID_SIZE = Integer.parseInt(EditorProperties.getInstance().get("grid_size"));
     List<Building> buildings = new ArrayList<>();
     List<Road> roads = new ArrayList<>();
 
@@ -525,21 +527,23 @@ public class RendererPanel extends JPanel implements GLEventListener {
             road.draw(gl, road == selectedRoad, debug);
         }
 
-
+        gl.glPushMatrix();
+        gl.glColor3d(0.8, 0.8, 0.8);
         gl.glLineWidth(2);
-        for (int i = -RENDER_DISTANCE; i <= RENDER_DISTANCE; i++) {
-            gl.glColor3d( 0.6, 0.6, 0.6);
+        int x = (int)position.getX() - ((int)position.getX() % GRID_SIZE);
+        int z = (int)position.getZ() - ((int)position.getZ() % GRID_SIZE);
+        for (int i = -RENDER_DISTANCE; i <= RENDER_DISTANCE; i+= GRID_SIZE) {
             gl.glBegin(GL2.GL_LINES);
-            gl.glVertex3d((int)position.getX() - RENDER_DISTANCE, -.05, (int)position.getZ() + i);
-            gl.glVertex3d((int)position.getX() + RENDER_DISTANCE, -.05, (int)position.getZ() + i);
+            gl.glVertex3d(x - RENDER_DISTANCE, -.05, z + i);
+            gl.glVertex3d(x + RENDER_DISTANCE, -.05, z + i);
             gl.glEnd();
 
-            gl.glColor3d( 0.6, 0.6, 0.6);
             gl.glBegin(GL2.GL_LINES);
-            gl.glVertex3d((int)position.getX() + i, -.05, (int)position.getZ() - RENDER_DISTANCE);
-            gl.glVertex3d((int)position.getX() + i, -.05, (int)position.getZ() + RENDER_DISTANCE);
+            gl.glVertex3d(x + i, -.05, z - RENDER_DISTANCE);
+            gl.glVertex3d(x + i, -.05, z + RENDER_DISTANCE);
             gl.glEnd();
         }
+        gl.glPopMatrix();
 
         if (debug && livePlaneIntersectionPoint != null) {
             gl.glColor3d(0, 1, 0);
