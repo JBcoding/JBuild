@@ -20,7 +20,7 @@ polyCommand : simpleCommand arguments #polyCommandSimple
             | assignment #polyCommandAssignment;
 
 
-simpleCommand : 'color' | 'translate' | 'translateG' | 'rotateX' | 'rotateY' | 'rotateZ' | 'rotatePX' | 'rotatePY' | 'rotatePZ' | 'scale' | 'polygon';
+simpleCommand : 'color' | 'translate' | 'translateG' | 'rotateX' | 'rotateY' | 'rotateZ' | 'rotatePX' | 'rotatePY' | 'rotatePZ' | 'scale' | 'polygon' | 'oshape' | 'lshape';
 
 assignment : qualifiedVariable ASSIGN expression;
 

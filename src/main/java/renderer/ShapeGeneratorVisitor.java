@@ -82,7 +82,21 @@ public class ShapeGeneratorVisitor implements ASTVisitor<List<Shape>> {
                     Pair<Double, Double> p = (Pair<Double, Double>)en.getValue();
                     coordinates.add(new Vector3D(p.getKey(), p.getValue(), 0));
                 }
-                currentShape = new Polygon(currentShape, coordinates);
+                currentShape = new ConvexPolygon(currentShape, coordinates);
+                break;
+            case "oshape":
+                currentShape = MultiPolygonWrapper.generatePolyCut(
+                        (ConvexPolygon) currentShape,
+                        (Double) node.getArguments().getArguments().get(0).getValue(),
+                        0,
+                        ((ConvexPolygon) currentShape).getPoints().size());
+                break;
+            case "lshape":
+                currentShape = MultiPolygonWrapper.generatePolyCut(
+                        (ConvexPolygon) currentShape,
+                        (Double) node.getArguments().getArguments().get(0).getValue(),
+                        0,
+                        2);
                 break;
         }
         return new ArrayList<Shape>(){{add(currentShape);}};
@@ -203,7 +217,7 @@ public class ShapeGeneratorVisitor implements ASTVisitor<List<Shape>> {
             Pair<Double, Double> p = (Pair<Double, Double>)en.getValue();
             coordinates.add(new Vector3D(p.getKey(), p.getValue(), 0));
         }
-        Polygon p = new Polygon(coordinates);
+        ConvexPolygon p = new ConvexPolygon(coordinates);
         // rotate from xy plane to xz plane
         p.setRotation(Util.createRotationMatrix(Math.PI / 2, new Vector3D(1, 0, 0)));
         currentShape = p;

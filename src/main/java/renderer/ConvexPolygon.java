@@ -7,30 +7,38 @@ import org.apache.commons.math3.linear.MatrixUtils;
 
 import java.util.*;
 
-public class Polygon extends Shape {
+public class ConvexPolygon extends Shape {
     List<Vector3D> points;
 
-    private Polygon(Polygon parent, final Vector3D... points) {
+    private ConvexPolygon(ConvexPolygon parent, final Vector3D... points) {
         this(parent, Arrays.asList(points));
     }
 
-    private Polygon(Polygon parent, List<Vector3D> points) {
+    private ConvexPolygon(ConvexPolygon parent, List<Vector3D> points) {
         this(parent);
         this.points = cleanPoints(points);
     }
 
-    private Polygon(Polygon parent) {
+    public List<Vector3D> getPoints() {
+        return points;
+    }
+
+    public void setPoints(List<Vector3D> points) {
+        this.points = points;
+    }
+
+    private ConvexPolygon(ConvexPolygon parent) {
         this((Shape) parent, parent.points);
     }
 
-    public Polygon(Shape parent, List<Vector3D> points) {
+    public ConvexPolygon(Shape parent, List<Vector3D> points) {
         this.points = cleanPoints(points);
         this.rotation = parent.rotation.copy();
         this.translation = new Vector3D(parent.translation.toArray());
         this.color = parent.color;
     }
 
-    public Polygon(List<Vector3D> points) {
+    public ConvexPolygon(List<Vector3D> points) {
         this.points = cleanPoints(points);
 
         this.rotation = MatrixUtils.createRealDiagonalMatrix(new double[]{1, 1, 1});
@@ -55,14 +63,8 @@ public class Polygon extends Shape {
         return cleanPoints;
     }
 
-    public Polygon(Vector3D... points) {
+    public ConvexPolygon(Vector3D... points) {
        this(Arrays.asList(points));
-    }
-
-    private Vector3D getRealPoint(Vector3D point) {
-        point = Util.preMultiplyVector3dMatrix(point, rotation);
-        point = point.add(translation);
-        return point;
     }
 
     private Vector3D getNormalVector() {
@@ -183,11 +185,11 @@ public class Polygon extends Shape {
     public List<Shape> extrude(double distance) {
         List<Shape> newFaces = new ArrayList<Shape>();
 
-        Polygon bottom = new Polygon(this);
+        ConvexPolygon bottom = new ConvexPolygon(this);
         bottom.faceType = FaceType.BOTTOM;
         newFaces.add(bottom);
 
-        Polygon top = new Polygon(this);
+        ConvexPolygon top = new ConvexPolygon(this);
         top.faceType = FaceType.TOP;
         top.translation = top.translation.add(getNormalVector().scalarMultiply(distance));
         newFaces.add(top);
@@ -197,7 +199,7 @@ public class Polygon extends Shape {
             Vector3D to = points.get((i + 1) % points.size());
             double deltaDistance = from.distance(to);
 
-            Polygon side = new Polygon(this,
+            ConvexPolygon side = new ConvexPolygon(this,
                     new Vector3D(0, 0, 0),
                     new Vector3D(0, distance, 0),
                     new Vector3D(deltaDistance, distance, 0),
@@ -314,7 +316,7 @@ public class Polygon extends Shape {
                 }
                 offsetVector = new Vector3D(-localMinY, maxX - localMaxX, 0);
             }
-            Polygon newFace = new Polygon(this, newPoints);
+            ConvexPolygon newFace = new ConvexPolygon(this, newPoints);
             newFace.splitIndex = j;
             newFace.translation = newFace.translation.add(Util.preMultiplyVector3dMatrix(offsetVector, newFace.rotation));
 
@@ -374,15 +376,7 @@ public class Polygon extends Shape {
         }
     }
 
-    @Override
-    public void translate(Vector3D offset) {
-        this.translation = this.translation.add(Util.preMultiplyVector3dMatrix(offset, this.rotation));
-    }
 
-    @Override
-    public void translateGlobal(Vector3D offset) {
-        this.translation = this.translation.add(offset);
-    }
 
     @Override
     public BoundingBox getBoundingBox() {

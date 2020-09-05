@@ -39,9 +39,13 @@ public abstract class Shape {
 
     public abstract void scale(Vector2D factors);
 
-    public abstract void translate(Vector3D offset);
+    public void translate(Vector3D offset) {
+        this.translation = this.translation.add(Util.preMultiplyVector3dMatrix(offset, this.rotation));
+    }
 
-    public abstract void translateGlobal(Vector3D offset);
+    public void translateGlobal(Vector3D offset) {
+        this.translation = this.translation.add(offset);
+    }
 
     public abstract BoundingBox getBoundingBox();
 
@@ -91,5 +95,11 @@ public abstract class Shape {
 
     public void setFaceIndex(int faceIndex) {
         this.faceIndex = faceIndex;
+    }
+
+    protected Vector3D getRealPoint(Vector3D point) {
+        point = Util.preMultiplyVector3dMatrix(point, rotation);
+        point = point.add(translation);
+        return point;
     }
 }

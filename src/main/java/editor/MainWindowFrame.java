@@ -21,6 +21,7 @@ public class MainWindowFrame extends JFrame {
 
     public MainWindowFrame() {
         super("JBuild");
+        setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
         setJMenuBar(createMenu());
         setupPanes();
 
