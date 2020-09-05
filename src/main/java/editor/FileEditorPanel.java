@@ -5,8 +5,10 @@ import building.antlr.BuildingParser;
 import org.antlr.v4.runtime.BaseErrorListener;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
+import org.fife.ui.rsyntaxtextarea.AbstractTokenMakerFactory;
 import org.fife.ui.rsyntaxtextarea.RSyntaxTextArea;
 import org.fife.ui.rsyntaxtextarea.Theme;
+import org.fife.ui.rsyntaxtextarea.TokenMakerFactory;
 import org.fife.ui.rtextarea.RTextScrollPane;
 
 import javax.swing.*;
@@ -64,6 +66,11 @@ public class FileEditorPanel extends JPanel {
         } catch (IOException e) {
             e.printStackTrace();
         }
+
+        AbstractTokenMakerFactory atmf = (AbstractTokenMakerFactory) TokenMakerFactory.getDefaultInstance();
+        atmf.putMapping("text/jbuild", "editor.JBuildSyntaxTokenMaker");
+        textEditor.setSyntaxEditingStyle("text/jbuild");
+
         RTextScrollPane sp = new RTextScrollPane(textEditor);
         textEditor.addKeyListener(new KeyAdapter() {
             @Override
