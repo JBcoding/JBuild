@@ -1,9 +1,11 @@
 package renderer;
 
+import AST.Axis;
 import com.jogamp.opengl.GL2;
 import org.apache.commons.math3.geometry.euclidean.threed.Vector3D;
 import org.apache.commons.math3.geometry.euclidean.twod.Vector2D;
 import org.apache.commons.math3.linear.MatrixUtils;
+import org.apache.commons.math3.linear.RealMatrix;
 
 import java.awt.*;
 import java.util.ArrayList;
@@ -60,6 +62,24 @@ public class MultiPolygonWrapper extends Shape {
                 add(p4);
             }});
 
+            // Polygon should now be rotated so that p1 --- p2 is the X-axis
+
+            Vector3D directionVector = p2.subtract(p1);
+
+            // angle is angle between X axis and p2 --- p1
+            // points should be rotated -angle around p2
+            double angle = Math.atan2(directionVector.getY(), directionVector.getX());
+            RealMatrix m = Util.createRotationMatrix(angle, Vector3D.PLUS_K);
+            RealMatrix mInverse = Util.createRotationMatrix(-angle, Vector3D.PLUS_K);
+
+//            for (int j = 0; j < poly.getPoints().size(); j++) {
+//                Vector3D point = poly.getPoints().get(j);
+//                point = Util.preMultiplyVector3dMatrix(point.subtract(p2), m).add(p2);
+//                poly.getPoints().set(j, point);
+//            }
+//
+//            poly.setRotation(poly.getRotation().multiply(mInverse));
+
             Vector3D trans = new Vector3D(
                     Math.min(p1.getX(), Math.min(p2.getX(), Math.min(p3.getX(), p4.getX()))),
                     Math.min(p1.getZ(), Math.min(p2.getZ(), Math.min(p3.getZ(), p4.getZ()))),
@@ -67,6 +87,7 @@ public class MultiPolygonWrapper extends Shape {
                     );
 
             poly.setTranslation(poly.getTranslation().add(trans));
+//            poly.setTranslation(poly.getTranslation().subtract(poly.getPoints().get(0)));
             polys.add(poly);
         }
 
