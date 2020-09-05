@@ -118,8 +118,34 @@ public class MultiPolygonWrapper extends Shape {
         for (ConvexPolygon polygon : simplePolygons) {
             combined.addAll(polygon.extrude(distance));
         }
-        // TODO: Collect all top and bottom pieces into two non-convex polys
-        return combined;
+
+        List<Shape> sides = new ArrayList<>();
+        List<ConvexPolygon> tops = new ArrayList<>();
+        List<ConvexPolygon> bottoms = new ArrayList<>();
+
+        for (Shape shape : combined) {
+            if (shape.getFaceType() == FaceType.TOP) {
+                tops.add((ConvexPolygon) shape);
+            } else if (shape.getFaceType() == FaceType.BOTTOM) {
+                bottoms.add((ConvexPolygon) shape);
+            } else {
+                sides.add(shape);
+            }
+        }
+
+        MultiPolygonWrapper top = new MultiPolygonWrapper();
+        top.setSimplePolygons(tops);
+        top.setFaceType(FaceType.TOP);
+
+        MultiPolygonWrapper bottom = new MultiPolygonWrapper();
+        bottom.setSimplePolygons(bottoms);
+        bottom.setFaceType(FaceType.BOTTOM);
+
+        return new ArrayList<Shape>() {{
+            add(top);
+            add(bottom);
+            addAll(sides);
+        }};
     }
 
     @Override
@@ -180,5 +206,12 @@ public class MultiPolygonWrapper extends Shape {
             max = new Vector3D(Math.max(max.getX(), b.getMax().getX()), Math.max(max.getY(), b.getMax().getY()), Math.max(max.getZ(), b.getMax().getZ()));
         }
         return new BoundingBox(min, max);
+    }
+
+    @Override
+    public void setColor(Color color) {
+        for (ConvexPolygon poly : simplePolygons) {
+            poly.setColor(color);
+        }
     }
 }
