@@ -2,6 +2,8 @@ package renderer;
 
 import AST.Axis;
 import com.jogamp.opengl.GL2;
+import org.apache.commons.math3.geometry.euclidean.threed.Rotation;
+import org.apache.commons.math3.geometry.euclidean.threed.RotationOrder;
 import org.apache.commons.math3.geometry.euclidean.threed.Vector3D;
 import org.apache.commons.math3.geometry.euclidean.twod.Vector2D;
 import org.apache.commons.math3.linear.MatrixUtils;
@@ -9,6 +11,7 @@ import org.apache.commons.math3.linear.RealMatrix;
 
 import java.awt.*;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public class MultiPolygonWrapper extends Shape {
@@ -25,7 +28,8 @@ public class MultiPolygonWrapper extends Shape {
         Vector3D max = Vector3D.NEGATIVE_INFINITY;
 
         for (ConvexPolygon polygon : simplePolygons) {
-            for (Vector3D point : polygon.getPoints()) {
+            for (Vector3D point2d : polygon.getPoints()) {
+                Vector3D point = polygon.getRealPoint(point2d);
                 min = new Vector3D(Math.min(min.getX(), point.getX()),Math.min(min.getY(), point.getY()),Math.min(min.getY(), point.getY()));
                 max = new Vector3D(Math.max(max.getX(), point.getX()),Math.max(max.getY(), point.getY()),Math.max(max.getY(), point.getY()));
             }
@@ -112,7 +116,7 @@ public class MultiPolygonWrapper extends Shape {
             // points should be rotated -angle around p2
             double angle = Math.atan2(directionVector.getY(), directionVector.getX());
             RealMatrix m = Util.createRotationMatrix(angle, Vector3D.PLUS_K);
-            RealMatrix mInverse = Util.createRotationMatrix(-angle, Vector3D.PLUS_J);
+            RealMatrix mInverse = Util.createRotationMatrix(-angle, polygon.getNormalVector());
 
             for (int j = 0; j < points.size(); j++) {
                 Vector3D point = points.get(j);
@@ -138,6 +142,7 @@ public class MultiPolygonWrapper extends Shape {
 
         MultiPolygonWrapper shape = new MultiPolygonWrapper();
         shape.setSimplePolygons(polys);
+        shape.setRotation(polygon.getRotation());
         return shape;
     }
 
@@ -214,17 +219,25 @@ public class MultiPolygonWrapper extends Shape {
 
     @Override
     public void rotateCenter(Vector3D axis, double angle) {
-        Vector3D center = getCenter();
-        for (ConvexPolygon poly : simplePolygons) {
-            poly.rotateAroundPoint(axis, new Vector2D(center.getX(), center.getY()), angle);
-        }
+        //double maxX = points.stream().mapToDouble(Vector3D::getX).max().getAsDouble();
+        //double maxY = points.stream().mapToDouble(Vector3D::getY).max().getAsDouble();
+
+        //Vector2D centerPoint = new Vector2D(maxX / 2, maxY / 2);
+
+        //rotateAroundPoint(axis, centerPoint, angle);
     }
 
     @Override
     public void rotateAroundPoint(Vector3D axis, Vector2D point, double angle) {
-        for (ConvexPolygon poly : simplePolygons) {
-            poly.rotateAroundPoint(axis, point, angle);
-        }
+        rotateAroundPoint(axis, new Vector3D(point.getX(), point.getY(), 0d), angle);
+    }
+
+    @Override
+    protected void rotateAroundPoint(Vector3D axis, Vector3D point, double angle) {
+        Vector3D globalPoint = getRealPoint(new Vector3D(point.getX(), point.getY(), point.getZ()));
+        this.rotation = Util.createRotationMatrix(angle, axis).multiply(this.rotation);
+        Vector3D newGlobalPoint = getRealPoint(new Vector3D(point.getX(), point.getY(), point.getZ()));
+        this.translation = this.translation.add(globalPoint.subtract(newGlobalPoint));
     }
 
     @Override
@@ -256,6 +269,21 @@ public class MultiPolygonWrapper extends Shape {
     public void setColor(Color color) {
         for (ConvexPolygon poly : simplePolygons) {
             poly.setColor(color);
+        }
+    }
+
+    @Override
+    public void translate(Vector3D offset) {
+        for (ConvexPolygon cp : simplePolygons) {
+            Vector3D localOffset = Util.preMultiplyVector3dMatrix(offset, MatrixUtils.inverse(rotation));
+            cp.translateGlobal(localOffset);
+        }
+    }
+
+    @Override
+    public void translateGlobal(Vector3D offset) {
+        for (ConvexPolygon cp : simplePolygons) {
+            cp.translateGlobal(offset);
         }
     }
 }

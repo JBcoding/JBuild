@@ -373,32 +373,21 @@ public class RendererPanel extends JPanel implements GLEventListener {
         glcanvas.addMouseWheelListener(new MouseWheelListener() {
             @Override
             public void mouseWheelMoved(MouseWheelEvent e) {
-                long time = System.nanoTime();
-                long delta = time - nanoTimeAtLastScroll[0];
-                if (delta > 17000000) {
-                    nanoTimeAtLastScroll[0] = time;
-                    double factor = 0.2;
+                double factor = 0.2;
 
-                    if (e.isShiftDown()) {
-                        factor = 0.03;
-                    } else if (e.isAltDown()) {
-                        factor = 2;
-                    }
-
-                    RealMatrix rotation = getCurrentRotationMatrix();
-
-                    if (delta > 2000000000) {
-                        scrollSinceLast[0] = 0;
-                    }
-                    double scroll = scrollSinceLast[0] + e.getPreciseWheelRotation();
-                    scrollSinceLast[0] = 0;
-
-                    Vector3D movement = new Vector3D(0, 0, scroll * factor);
-                    movement = Util.preMultiplyVector3dMatrix(movement, rotation);
-                    self.position = self.position.add(movement);
-                } else {
-                    scrollSinceLast[0] += e.getPreciseWheelRotation();
+                if (e.isShiftDown()) {
+                    factor = 0.03;
+                } else if (e.isAltDown()) {
+                    factor = 2;
                 }
+
+                RealMatrix rotation = getCurrentRotationMatrix();
+
+                double scroll = e.getPreciseWheelRotation();
+
+                Vector3D movement = new Vector3D(0, 0, scroll * factor);
+                movement = Util.preMultiplyVector3dMatrix(movement, rotation);
+                self.position = self.position.add(movement);
             }
         });
 

@@ -3,6 +3,7 @@ package renderer;
 import com.jogamp.opengl.GL2;
 import org.apache.commons.math3.geometry.euclidean.threed.Vector3D;
 import org.apache.commons.math3.geometry.euclidean.twod.Vector2D;
+import org.apache.commons.math3.linear.MatrixUtils;
 import org.apache.commons.math3.linear.RealMatrix;
 
 import java.awt.*;
@@ -36,6 +37,7 @@ public abstract class Shape {
     public abstract void rotateCenter(Vector3D axis, double angle);
 
     public abstract void rotateAroundPoint(Vector3D axis, Vector2D point, double angle);
+    protected abstract void rotateAroundPoint(Vector3D axis, Vector3D point, double angle);
 
     public abstract void scale(Vector2D factors);
 
@@ -100,6 +102,12 @@ public abstract class Shape {
     protected Vector3D getRealPoint(Vector3D point) {
         point = Util.preMultiplyVector3dMatrix(point, rotation);
         point = point.add(translation);
+        return point;
+    }
+
+    protected Vector3D getLocalPoint(Vector3D point) {
+        point = point.subtract(translation);
+        point = Util.preMultiplyVector3dMatrix(point, MatrixUtils.inverse(rotation));
         return point;
     }
 }

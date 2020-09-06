@@ -77,7 +77,7 @@ public class ConvexPolygon extends Shape {
        this(Arrays.asList(points));
     }
 
-    private Vector3D getNormalVector() {
+    protected Vector3D getNormalVector() {
         Vector3D deltaP1P2 = getRealPoint(points.get(0)).subtract(getRealPoint(points.get(1)));
         for (int i = 2; i < points.size(); i++) {
             Vector3D deltaP1Pi = getRealPoint(points.get(0)).subtract(getRealPoint(points.get(i)));
@@ -370,11 +370,15 @@ public class ConvexPolygon extends Shape {
 
     @Override
     public void rotateAroundPoint(Vector3D axis, Vector2D point, double angle) {
-        Vector3D globalPoint = getRealPoint(new Vector3D(point.getX(), point.getY(), 0d));
-        this.rotation = Util.createRotationMatrix(angle, axis).multiply(this.rotation);
-        Vector3D newGlobalPoint = getRealPoint(new Vector3D(point.getX(), point.getY(), 0d));
-        this.translation = this.translation.add(globalPoint.subtract(newGlobalPoint));
+        rotateAroundPoint(axis, new Vector3D(point.getX(), point.getY(), 0d), angle);
+    }
 
+    @Override
+    protected void rotateAroundPoint(Vector3D axis, Vector3D point, double angle) {
+        Vector3D globalPoint = getRealPoint(new Vector3D(point.getX(), point.getY(), point.getZ()));
+        this.rotation = Util.createRotationMatrix(angle, axis).multiply(this.rotation);
+        Vector3D newGlobalPoint = getRealPoint(new Vector3D(point.getX(), point.getY(), point.getZ()));
+        this.translation = this.translation.add(globalPoint.subtract(newGlobalPoint));
     }
 
     @Override
