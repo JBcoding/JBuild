@@ -40,7 +40,6 @@ public class MainWindowFrame extends JFrame {
             Building b = Building.buildFromFile(file, System.nanoTime());
             buildingUpdater.buildingChanged(b, BuildingChangeType.MOVED);
             renderer.addBuilding(b);
-            renderer.forceRedraw();
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -76,7 +75,6 @@ public class MainWindowFrame extends JFrame {
                 buildingUpdater.addRoadHash(r, ri);
                 renderer.addRoad(r);
             }
-            renderer.forceRedraw();
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -101,21 +99,12 @@ public class MainWindowFrame extends JFrame {
             }
         });
 
-        renderer.addBuildingChangedListener(new BuildingChangedListener() {
-            @Override
-            public void buildingChanged(Building building, BuildingChangeType type) {
-                renderer.forceRedraw();
-            }
-        });
-
-
 
         fileEditor = new FileEditorPanel();
         fileEditor.addFileChangedListener(new FileChangedListener() {
             @Override
             public void fileChanged(File file, FileChangeType type) {
                 redrawFromFile(file);
-                renderer.forceRedraw();
             }
         });
 

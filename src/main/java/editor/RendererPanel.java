@@ -3,6 +3,7 @@ package editor;
 import com.jogamp.opengl.*;
 import com.jogamp.opengl.awt.GLCanvas;
 import com.jogamp.opengl.glu.GLU;
+import com.jogamp.opengl.util.FPSAnimator;
 import com.jogamp.opengl.util.awt.TextRenderer;
 import javafx.util.Pair;
 import org.apache.commons.math3.geometry.euclidean.threed.Vector3D;
@@ -25,6 +26,7 @@ public class RendererPanel extends JPanel implements GLEventListener {
     private static GLU glu;
     private static final int RENDER_DISTANCE = Integer.parseInt(EditorProperties.getInstance().get("render_distance"));
     private static final int GRID_SIZE = Integer.parseInt(EditorProperties.getInstance().get("grid_size"));
+    private static final int TARGET_FPS = Integer.parseInt(EditorProperties.getInstance().get("target_fps"));
     List<Building> buildings = new ArrayList<>();
     List<Road> roads = new ArrayList<>();
 
@@ -62,11 +64,10 @@ public class RendererPanel extends JPanel implements GLEventListener {
     private double[] projmatrix;
 
 
-    private long[] lastFrameRenderTimes = new long[60];
-    private int lastFrameRenderTimesIndex = 0;
 
+    final GLCanvas canvas;
 
-    GLCanvas canvas = null;
+    final FPSAnimator animator;
 
     private List<BuildingChangedListener> buildingChangedListeners = new ArrayList<>();
     private List<RoadChangedListener> roadChangedListeners = new ArrayList<>();
@@ -89,6 +90,10 @@ public class RendererPanel extends JPanel implements GLEventListener {
         // The canvas
         final GLCanvas glcanvas = new GLCanvas(capabilities);
         canvas = glcanvas;
+
+        animator = new FPSAnimator(canvas, TARGET_FPS);
+        animator.setUpdateFPSFrames(20, null);
+        animator.start();
 
         glcanvas.addGLEventListener(this);
         glcanvas.setPreferredSize(new Dimension(800, 900));
@@ -127,7 +132,6 @@ public class RendererPanel extends JPanel implements GLEventListener {
             if (selectedRoad != null) {
                 roads.remove(selectedRoad);
                 selectedRoad = null;
-                canvas.display();
             }
         }
         selectedBuilding = null;
@@ -242,7 +246,6 @@ public class RendererPanel extends JPanel implements GLEventListener {
                 liveStartPoint = ray.getKey();
                 livePlaneIntersectionPoint = Util.getIntersectionPoint(liveStartPoint, liveDirection, Vector3D.ZERO, Vector3D.PLUS_I, Vector3D.PLUS_K);
 
-                glcanvas.display();
             }
 
             @Override
@@ -260,9 +263,6 @@ public class RendererPanel extends JPanel implements GLEventListener {
                     } else {
                         selectedRoad.setEndPoint(Road.snapEndPoint(selectedRoad.getStartPoint(), livePlaneIntersectionPoint, e.isShiftDown()));
                     }
-                    glcanvas.display();
-                } else if (livePlaneIntersectionPoint != null && debug) {
-                    glcanvas.display();
                 }
             }
         });
@@ -313,7 +313,6 @@ public class RendererPanel extends JPanel implements GLEventListener {
                 }
 
                 if (oldSelected != selectedBuilding || oldSelectedRoad != selectedRoad) {
-                    glcanvas.display();
                 }
             }
 
@@ -376,7 +375,7 @@ public class RendererPanel extends JPanel implements GLEventListener {
             public void mouseWheelMoved(MouseWheelEvent e) {
                 long time = System.nanoTime();
                 long delta = time - nanoTimeAtLastScroll[0];
-                if (delta > Math.max(17000000, 2 * lastFrameRenderTimes[(lastFrameRenderTimesIndex) % lastFrameRenderTimes.length])) {
+                if (delta > 17000000) {
                     nanoTimeAtLastScroll[0] = time;
                     double factor = 0.2;
 
@@ -397,7 +396,6 @@ public class RendererPanel extends JPanel implements GLEventListener {
                     Vector3D movement = new Vector3D(0, 0, scroll * factor);
                     movement = Util.preMultiplyVector3dMatrix(movement, rotation);
                     self.position = self.position.add(movement);
-                    glcanvas.display();
                 } else {
                     scrollSinceLast[0] += e.getPreciseWheelRotation();
                 }
@@ -414,7 +412,6 @@ public class RendererPanel extends JPanel implements GLEventListener {
             public void keyPressed(KeyEvent e) {
                 if (e.isShiftDown() && e.getExtendedKeyCode() == 68) { // shift + d
                     self.debug =! self.debug;
-                    glcanvas.display();
                 }
 
                 if (e.getExtendedKeyCode() == 127 || e.getExtendedKeyCode() == 8) { // delete
@@ -424,13 +421,11 @@ public class RendererPanel extends JPanel implements GLEventListener {
                         selectedBuilding = null;
                         draggingModeMove = false;
                         draggingModeRotate = false;
-                        canvas.display();
                     }
                     if (selectedRoad != null) {
                         emitRoadEvent(selectedRoad, RoadChangeType.REMOVE);
                         roads.remove(selectedRoad);
                         selectedRoad = null;
-                        canvas.display();
                     }
                 }
 
@@ -444,7 +439,6 @@ public class RendererPanel extends JPanel implements GLEventListener {
                     if (pathEditMode && selectedRoad != null) {
                         roads.remove(selectedRoad);
                         selectedRoad = null;
-                        canvas.display();
 
                         Road r = new Road();
                         roads.add(r);
@@ -579,9 +573,9 @@ public class RendererPanel extends JPanel implements GLEventListener {
             textRenderer.setColor(Color.YELLOW);
             textRenderer.setSmoothing(true);
 
-            int fps = getFps();
+            float fps = animator.getLastFPS();
             String[] linesToDump = new String[] {
-                    String.format("%d FPS", fps),
+                    String.format("%f FPS", fps),
                     String.format("Camera Position            : %s", position),
                     String.format("Cursor Ray Direction       : %s", liveDirection),
                     String.format("Cursor Ground Intersection : %s", livePlaneIntersectionPoint)
@@ -593,9 +587,6 @@ public class RendererPanel extends JPanel implements GLEventListener {
         }
 
         gl.glFlush();
-
-        long deltaTime = System.nanoTime() - timeStart;
-        lastFrameRenderTimes[(lastFrameRenderTimesIndex++) % lastFrameRenderTimes.length] = deltaTime;
 
         // Restore original (no-) translation and rotation
         gl.glLoadIdentity();
@@ -676,23 +667,6 @@ public class RendererPanel extends JPanel implements GLEventListener {
         gl.glEnd();
     }
 
-    private int getFps() {
-        int validCounts = 0;
-        long totalTime = 0;
-        for (int i = 0; i < lastFrameRenderTimes.length; i++) {
-            if (lastFrameRenderTimes[i] != 0) {
-                totalTime += lastFrameRenderTimes[i];
-                validCounts += 1;
-            }
-        }
-        int fps;
-        if (validCounts != 0) {
-            fps = (int) Math.ceil(validCounts * 1e9 / totalTime);
-        } else {
-            fps = 60;
-        }
-        return fps;
-    }
 
     @Override
     public void dispose(GLAutoDrawable arg0) {
@@ -808,9 +782,6 @@ public class RendererPanel extends JPanel implements GLEventListener {
         }
     }
 
-    public void forceRedraw() {
-        canvas.display();
-    }
 
     public void clearSelection() {
         this.selectedBuilding = null;
