@@ -44,23 +44,65 @@ public class MultiPolygonWrapper extends Shape {
             max = new Vector3D(Math.max(max.getX(), point.getX()),Math.max(max.getY(), point.getY()),Math.max(max.getZ(), point.getZ()));
         }
 
-        Vector3D center = min.add(max.subtract(min).scalarMultiply(0.5d));
+        Vector3D center = min.add(max).scalarMultiply(.5);
 
         // Assume at least 3 points
         for (int i = startIndex; i < sides; i++) {
             Vector3D p1 = polygon.getPoints().get(i);
             Vector3D p2 = polygon.getPoints().get((i + 1) % polygon.getPoints().size());
-            Vector3D direction1 = center.subtract(p1).normalize().scalarMultiply(depth);
-            Vector3D direction2 = center.subtract(p2).normalize().scalarMultiply(depth);
+            Vector3D pPrev = polygon.getPoints().get((i - 1 + polygon.getPoints().size()) % polygon.getPoints().size());
+            Vector3D pNext = polygon.getPoints().get((i + 2) % polygon.getPoints().size());
+
+            double angleP1P2 = Math.atan2(p1.subtract(p2).getY(), p1.subtract(p2).getX());
+            double angleP1PPrev = Math.atan2(p1.subtract(pPrev).getY(), p1.subtract(pPrev).getX());
+            double angleP2P1 = angleP1P2 + Math.PI;
+            double angleP2PNext = Math.atan2(p2.subtract(pNext).getY(), p2.subtract(pNext).getX());
+            double angleMiddleP1 = (angleP1P2 + angleP1PPrev) / 2;
+            double angleMiddleP2 = (angleP2P1 + angleP2PNext) / 2;
+
+            Vector3D offsetP1 = new Vector3D(Math.cos(angleMiddleP1), Math.sin(angleMiddleP1), 0);
+            Vector3D offsetP2 = new Vector3D(Math.cos(angleMiddleP2), Math.sin(angleMiddleP2), 0);
+
+            Vector3D centerP1;
+            Vector3D centerP2;
+
+            if (p1.add(offsetP1).distance(center) > p1.subtract(offsetP1).distance(center)) {
+                centerP1 = p1.subtract(offsetP1);
+            } else {
+                centerP1 = p1.add(offsetP1);
+            }
+
+            if (p2.add(offsetP2).distance(center) > p2.subtract(offsetP2).distance(center)) {
+                centerP2 = p2.subtract(offsetP2);
+            } else {
+                centerP2 = p2.add(offsetP2);
+            }
+
+            Vector3D direction1 = centerP1.subtract(p1).normalize().scalarMultiply(depth);
+            Vector3D direction2 = centerP2.subtract(p2).normalize().scalarMultiply(depth);
+
+            double angleD1 = Math.atan2(direction1.getY(), direction1.getX());
+            double angleD2 = Math.atan2(direction2.getY(), direction2.getX());
+
+            double angleP1P2Ce = angleP1P2 - angleD1;
+            double angleP2P1Ce = angleP2P1 - angleD2;
+
+            double depthFactorD1 = 1 / Math.abs(Math.sin(angleP1P2Ce));
+            double depthFactorD2 = 1 / Math.abs(Math.sin(angleP2P1Ce));
+
+            direction1 = direction1.scalarMultiply(depthFactorD1);
+            direction2 = direction2.scalarMultiply(depthFactorD2);
+
             Vector3D p3 = p2.add(direction2);
             Vector3D p4 = p1.add(direction1);
 
-            ConvexPolygon poly = new ConvexPolygon(polygon, new ArrayList<Vector3D>() {{
+
+            List<Vector3D> points = new ArrayList<Vector3D>() {{
                 add(p1);
                 add(p2);
                 add(p3);
                 add(p4);
-            }});
+            }};
 
             // Polygon should now be rotated so that p1 --- p2 is the X-axis
 
@@ -70,24 +112,27 @@ public class MultiPolygonWrapper extends Shape {
             // points should be rotated -angle around p2
             double angle = Math.atan2(directionVector.getY(), directionVector.getX());
             RealMatrix m = Util.createRotationMatrix(angle, Vector3D.PLUS_K);
-            RealMatrix mInverse = Util.createRotationMatrix(-angle, Vector3D.PLUS_K);
+            RealMatrix mInverse = Util.createRotationMatrix(-angle, Vector3D.PLUS_J);
 
-//            for (int j = 0; j < poly.getPoints().size(); j++) {
-//                Vector3D point = poly.getPoints().get(j);
-//                point = Util.preMultiplyVector3dMatrix(point.subtract(p2), m).add(p2);
-//                poly.getPoints().set(j, point);
-//            }
-//
-//            poly.setRotation(poly.getRotation().multiply(mInverse));
+            for (int j = 0; j < points.size(); j++) {
+                Vector3D point = points.get(j);
+                point = Util.preMultiplyVector3dMatrix(point, m);
+                points.set(j, point);
+            }
 
-            Vector3D trans = new Vector3D(
-                    Math.min(p1.getX(), Math.min(p2.getX(), Math.min(p3.getX(), p4.getX()))),
-                    Math.min(p1.getZ(), Math.min(p2.getZ(), Math.min(p3.getZ(), p4.getZ()))),
-                    -Math.min(p1.getY(), Math.min(p2.getY(), Math.min(p3.getY(), p4.getY())))
-                    );
+            double minX = points.stream().mapToDouble(Vector3D::getX).min().getAsDouble();
+            double minY = points.stream().mapToDouble(Vector3D::getY).min().getAsDouble();
 
-            poly.setTranslation(poly.getTranslation().add(trans));
-//            poly.setTranslation(poly.getTranslation().subtract(poly.getPoints().get(0)));
+
+            ConvexPolygon poly = new ConvexPolygon(polygon, points);
+            poly.setRotation(poly.getRotation().multiply(mInverse));
+
+            Vector3D currentPosition = poly.getRealPoint(new Vector3D(points.get(0).getX() - minX, points.get(0).getY() - minY, 0));
+            Vector3D wantedPosition = polygon.getRealPoint(p1);
+            Vector3D offset = wantedPosition.subtract(currentPosition);
+
+            poly.translateGlobal(offset);
+
             polys.add(poly);
         }
 
@@ -106,9 +151,8 @@ public class MultiPolygonWrapper extends Shape {
 
     @Override
     public void draw(GL2 gl, boolean highlighted, boolean debug, Vector3D position) {
-        for (ConvexPolygon polygon :
-                simplePolygons) {
-            polygon.draw(gl, false, debug, polygon.getTranslation().add(position));
+        for (ConvexPolygon polygon :  simplePolygons) {
+            polygon.draw(gl, highlighted, debug, position);
         }
     }
 

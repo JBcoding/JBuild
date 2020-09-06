@@ -46,6 +46,16 @@ public class ConvexPolygon extends Shape {
     }
 
     private List<Vector3D> cleanPoints(List<Vector3D> dirtyPoints) {
+        for (int i = 0; i < dirtyPoints.size(); i++) {
+            Vector3D p1 = dirtyPoints.get(i);
+            Vector3D p2 = dirtyPoints.get((i + 1) % dirtyPoints.size());
+
+            if (p1.distance(p2) < 0.000001d) {
+                dirtyPoints.remove(i);
+                i--;
+            }
+        }
+
         double minX = dirtyPoints.stream().mapToDouble(Vector3D::getX).min().getAsDouble();
         double minY = dirtyPoints.stream().mapToDouble(Vector3D::getY).min().getAsDouble();
 
@@ -158,7 +168,6 @@ public class ConvexPolygon extends Shape {
 
             lastPoint = point;
         }
-
     }
 
     @Override
@@ -253,7 +262,7 @@ public class ConvexPolygon extends Shape {
             for (UnitLength split : splits) {
                 double width = split.getWidth(maxX, remainderSum, remainderPortion);
                 currentPosition += width;
-                if (currentPosition > maxX) {
+                if (currentPosition - 0.00001d > maxX) {
                     if (includePartialSections) {
                         widths.add(currentPosition);
                         lastPartial = true;
@@ -314,7 +323,7 @@ public class ConvexPolygon extends Shape {
                     Vector3D point = newPoints.get(i);
                     newPoints.set(i, new Vector3D(point.getY(), -point.getX(), point.getZ()));
                 }
-                offsetVector = new Vector3D(-localMinY, maxX - localMaxX, 0);
+                offsetVector = new Vector3D(localMinY, maxX - localMaxX, 0);
             }
             ConvexPolygon newFace = new ConvexPolygon(this, newPoints);
             newFace.splitIndex = j;
@@ -325,7 +334,10 @@ public class ConvexPolygon extends Shape {
                 continue;
             }
 
-            newFaces.add(newFace);
+            if (newFace.getNormalVector() != null) {
+                // check if it has at-least some area
+                newFaces.add(newFace);
+            }
         }
         if (lastPartial && newFaces.size() > 0) {
             newFaces.get(newFaces.size() - 1).setPartial(true);
