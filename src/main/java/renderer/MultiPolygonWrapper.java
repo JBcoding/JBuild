@@ -38,7 +38,11 @@ public class MultiPolygonWrapper extends Shape {
         return min.add(max.subtract(min).scalarMultiply(0.5d));
     }
 
-    public static MultiPolygonWrapper generatePolyCut(ConvexPolygon polygon, Double depth, int startIndex, int sides) {
+    public static MultiPolygonWrapper generatePolyCut(ConvexPolygon polygon, Double depth, int startIndex, int endIndex) {
+        if (endIndex < startIndex) {
+            endIndex += polygon.getPoints().size();
+        }
+        boolean completeCycle = endIndex % polygon.getPoints().size() == startIndex % polygon.getPoints().size();
         List<ConvexPolygon> polys = new ArrayList<>();
         Vector3D min = Vector3D.POSITIVE_INFINITY;
         Vector3D max = Vector3D.NEGATIVE_INFINITY;
@@ -51,11 +55,18 @@ public class MultiPolygonWrapper extends Shape {
         Vector3D center = min.add(max).scalarMultiply(.5);
 
         // Assume at least 3 points
-        for (int i = startIndex; i < sides; i++) {
-            Vector3D p1 = polygon.getPoints().get(i);
+        for (int i = startIndex; i < endIndex; i++) {
+            Vector3D p1 = polygon.getPoints().get(i % polygon.getPoints().size());
             Vector3D p2 = polygon.getPoints().get((i + 1) % polygon.getPoints().size());
             Vector3D pPrev = polygon.getPoints().get((i - 1 + polygon.getPoints().size()) % polygon.getPoints().size());
             Vector3D pNext = polygon.getPoints().get((i + 2) % polygon.getPoints().size());
+
+            if (i == startIndex && !completeCycle) {
+                pPrev = p1.add(p1.subtract(p2));
+            }
+            if (i == endIndex - 1 && !completeCycle) {
+                pNext = p2.add(p2.subtract(p1));
+            }
 
             double angleP1P2 = Math.atan2(p1.subtract(p2).getY(), p1.subtract(p2).getX());
             double angleP1PPrev = Math.atan2(p1.subtract(pPrev).getY(), p1.subtract(pPrev).getX());

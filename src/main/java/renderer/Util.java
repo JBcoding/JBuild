@@ -7,6 +7,9 @@ import org.apache.commons.math3.linear.ArrayRealVector;
 import org.apache.commons.math3.linear.MatrixUtils;
 import org.apache.commons.math3.linear.RealMatrix;
 
+import java.util.BitSet;
+import java.util.Random;
+
 public class Util {
     public static RealMatrix createRotationMatrix(double angle, Vector3D axis) {
         axis = axis.normalize();
@@ -59,13 +62,37 @@ public class Util {
     public static void drawLine(GL2 gl, Vector3D p1, Vector3D p2, double r, double g, double b) {
         gl.glColor3d( r, g, b);
 
-        gl.glLineWidth(8);
+        gl.glLineWidth(2);
 
         gl.glBegin(GL2.GL_LINES);
 
         gl.glVertex3d(p1.getX(), p1.getY(), p1.getZ());
 
         gl.glVertex3d(p2.getX(), p2.getY(), p2.getZ());
+
+        gl.glEnd();
+    }
+
+    public static void drawLine(GL2 gl, Vector3D p1, Vector3D p2, Vector3D normalVector, double width, double r, double g, double b) {
+        gl.glColor3d( r, g, b);
+
+        Vector3D p1p2 = p1.subtract(p2);
+        Vector3D sideVector = p1p2.crossProduct(normalVector).normalize().scalarMultiply(width);
+
+        Vector3D p3 = p1.add(sideVector);
+        Vector3D p4 = p1.subtract(sideVector);
+        Vector3D p5 = p2.add(sideVector);
+        Vector3D p6 = p2.subtract(sideVector);
+
+        gl.glBegin(GL2.GL_TRIANGLES);
+
+        gl.glVertex3d(p3.getX(), p3.getY(), p3.getZ());
+        gl.glVertex3d(p4.getX(), p4.getY(), p4.getZ());
+        gl.glVertex3d(p5.getX(), p5.getY(), p5.getZ());
+
+        gl.glVertex3d(p6.getX(), p6.getY(), p6.getZ());
+        gl.glVertex3d(p4.getX(), p4.getY(), p4.getZ());
+        gl.glVertex3d(p5.getX(), p5.getY(), p5.getZ());
 
         gl.glEnd();
     }

@@ -5,6 +5,8 @@ import com.jogamp.opengl.awt.GLCanvas;
 import com.jogamp.opengl.glu.GLU;
 import com.jogamp.opengl.util.FPSAnimator;
 import com.jogamp.opengl.util.awt.TextRenderer;
+import com.jogamp.opengl.util.texture.Texture;
+import com.jogamp.opengl.util.texture.TextureIO;
 import javafx.util.Pair;
 import org.apache.commons.math3.geometry.euclidean.threed.Vector3D;
 import org.apache.commons.math3.geometry.euclidean.twod.Vector2D;
@@ -17,9 +19,8 @@ import renderer.Util;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
-import java.nio.FloatBuffer;
-import java.util.ArrayList;
-import java.util.Arrays;
+import java.io.IOException;
+import java.util.*;
 import java.util.List;
 
 public class RendererPanel extends JPanel implements GLEventListener {
@@ -43,13 +44,13 @@ public class RendererPanel extends JPanel implements GLEventListener {
     private Road selectedRoad = null;
     private boolean previewRoad = false;
 
-    private boolean draggingModeMove = false;
     private Vector3D originalPlaneIntersectionPoint = null;
     private Vector3D originalBuildingTranslation = null;
     private double originalBuildingIntersectionHeight = 0;
 
-    private boolean draggingModeRotate = false;
     private double originalBuildingRotation = 0;
+
+    private Vector3D originalScreenCenterIntersectionPoint;
 
     private boolean pathEditMode = false;
     private JButton editButton = null;
@@ -64,6 +65,8 @@ public class RendererPanel extends JPanel implements GLEventListener {
     private double[] projmatrix;
 
 
+    private RenderPanelState state = RenderPanelState.NONE;
+
 
     final GLCanvas canvas;
 
@@ -71,6 +74,9 @@ public class RendererPanel extends JPanel implements GLEventListener {
 
     private List<BuildingChangedListener> buildingChangedListeners = new ArrayList<>();
     private List<RoadChangedListener> roadChangedListeners = new ArrayList<>();
+
+
+    private Map<Icon, Texture> textures;
 
     public RendererPanel() {
         super();
@@ -158,32 +164,32 @@ public class RendererPanel extends JPanel implements GLEventListener {
                 double deltaX = lastMouseCoords[0] - e.getX();
                 double deltaY = lastMouseCoords[1] - e.getY();
 
-                if (self.draggingModeMove) {
+                if (state == RenderPanelState.MOVING_BUILDING) {
                     Pair<Vector3D, Vector3D> ray = self.getClickRay(e.getX(), e.getY());
                     Vector3D direction = ray.getValue();
                     Vector3D startPoint = ray.getKey();
 
                     Vector3D currentPlaneIntersectionPoint = Util.getIntersectionPoint(startPoint.subtract(new Vector3D(0, originalBuildingIntersectionHeight, 0)), direction, Vector3D.ZERO, Vector3D.PLUS_I, Vector3D.PLUS_K);
 
-                    double deltaXPlane = self.originalPlaneIntersectionPoint.getX() - currentPlaneIntersectionPoint.getX();
-                    double deltaYPlane = self.originalPlaneIntersectionPoint.getZ() - currentPlaneIntersectionPoint.getZ();
+                    double xPlane = self.originalPlaneIntersectionPoint.getX() - currentPlaneIntersectionPoint.getX() - self.originalBuildingTranslation.getX();
+                    double yPlane = self.originalPlaneIntersectionPoint.getZ() - currentPlaneIntersectionPoint.getZ() - self.originalBuildingTranslation.getZ();
 
                     if (!e.isShiftDown()) {
-                        deltaXPlane = (int) deltaXPlane;
-                        deltaYPlane = (int) deltaYPlane;
+                        xPlane = Math.round(xPlane);
+                        yPlane = Math.round(yPlane);
                     } else {
-                        deltaXPlane *= 20;
-                        deltaYPlane *= 20;
-                        deltaXPlane = (int) deltaXPlane;
-                        deltaYPlane = (int) deltaYPlane;
-                        deltaXPlane /= 20;
-                        deltaYPlane /= 20;
+                        xPlane *= 20;
+                        yPlane *= 20;
+                        xPlane = Math.round(xPlane);
+                        yPlane = Math.round(yPlane);
+                        xPlane /= 20;
+                        yPlane /= 20;
                     }
 
-                    Vector3D newTranslation = self.originalBuildingTranslation.add(new Vector3D(-deltaXPlane, 0, -deltaYPlane));
+                    Vector3D newTranslation = new Vector3D(-xPlane, self.originalBuildingTranslation.getY(), -yPlane);
                     self.selectedBuilding.setTranslation(newTranslation);
 
-                } else if (self.draggingModeRotate) {
+                } else if (state == RenderPanelState.ROTATING_BUILDING) {
                     Pair<Vector3D, Vector3D> ray = self.getClickRay(e.getX(), e.getY());
                     Vector3D direction = ray.getValue();
                     Vector3D startPoint = ray.getKey();
@@ -201,31 +207,63 @@ public class RendererPanel extends JPanel implements GLEventListener {
                             originalPlaneIntersectionPoint.getZ(),
                             originalPlaneIntersectionPoint.getX());
 
-                    double deltaAngle = angleNew - angleOriginal;
+                    double angle = self.originalBuildingRotation + angleNew - angleOriginal;
 
                     if (!e.isShiftDown()) {
-                        deltaAngle /= Math.PI;
-                        deltaAngle *= 32;
-                        deltaAngle = (int) deltaAngle;
-                        deltaAngle /= 32;
-                        deltaAngle *= Math.PI;
+                        angle /= Math.PI;
+                        angle *= 32;
+                        angle = (int) angle;
+                        angle /= 32;
+                        angle *= Math.PI;
                     } else {
-                        deltaAngle /= Math.PI;
-                        deltaAngle *= 256;
-                        deltaAngle = (int) deltaAngle;
-                        deltaAngle /= 256;
-                        deltaAngle *= Math.PI;
+                        angle /= Math.PI;
+                        angle *= 256;
+                        angle = (int) angle;
+                        angle /= 256;
+                        angle *= Math.PI;
                     }
 
-                    self.selectedBuilding.setRotationAngle(self.originalBuildingRotation + deltaAngle);
-                } else if (!e.isControlDown() && !SwingUtilities.isMiddleMouseButton(e)) {
+                    self.selectedBuilding.setRotationAngle(angle);
+                } else if (state == RenderPanelState.ROTATING && e.isAltDown()) {
                     double factor = .1;
                     if (e.isShiftDown()) {
                         factor = .02;
                     }
                     self.xAngle += factor * deltaX;
                     self.yAngle += factor * deltaY;
-                } else {
+                } else if (state == RenderPanelState.ROTATING) {
+                    if (originalScreenCenterIntersectionPoint != null) {
+                        double deltaAngleY = deltaY / 600;
+                        double deltaAngleX = -deltaX / 600;
+                        if (e.isShiftDown()) {
+                            deltaAngleY /= 8;
+                            deltaAngleX /= 8;
+                        }
+
+                        Vector3D vectorToCalculateRotateYVector = Vector3D.PLUS_J;
+                        double yAngleInRange = ((yAngle % 360) + 360) % 360;
+                        if (yAngleInRange >= 45 && yAngleInRange < 135) {
+                            vectorToCalculateRotateYVector = new Vector3D(Math.cos(xAngle / 180 * Math.PI - Math.PI / 2), 0, Math.sin(xAngle / 180 * Math.PI - Math.PI / 2));
+                        } else if (yAngleInRange >= 45 + 90 && yAngleInRange < 135 + 90) {
+                            vectorToCalculateRotateYVector = Vector3D.MINUS_J;
+                        } else if (yAngleInRange >= 45 + 180 && yAngleInRange < 135 + 180) {
+                            vectorToCalculateRotateYVector = new Vector3D(Math.cos(xAngle / 180 * Math.PI - Math.PI / 2), 0, Math.sin(xAngle / 180 * Math.PI - Math.PI / 2)).scalarMultiply(-1);
+                        }
+
+                        Vector3D cameraDirection = position.subtract(originalScreenCenterIntersectionPoint);
+                        Vector3D rotationVectorY = cameraDirection.crossProduct(vectorToCalculateRotateYVector);
+                        RealMatrix rotationMatrixY = Util.createRotationMatrix(deltaAngleY, rotationVectorY);
+
+                        RealMatrix rotationMatrixX = Util.createRotationMatrix(deltaAngleX, Vector3D.PLUS_J);
+
+                        RealMatrix rotationMatrix = rotationMatrixY.multiply(rotationMatrixX);
+
+                        Vector3D newCameraDirection = Util.preMultiplyVector3dMatrix(cameraDirection, rotationMatrix);
+                        position = newCameraDirection.add(originalScreenCenterIntersectionPoint);
+                        yAngle -= 180 / Math.PI * deltaAngleY;
+                        xAngle += 180 / Math.PI * deltaAngleX;
+                    }
+                } else if (state == RenderPanelState.MOVING) {
                     double cameraHeight = Math.abs(self.position.getY());
                     double factor = .001 * cameraHeight * 1.4;
                     if (e.isShiftDown()) {
@@ -322,14 +360,19 @@ public class RendererPanel extends JPanel implements GLEventListener {
                 Vector3D direction = ray.getValue();
                 Vector3D startPoint = ray.getKey();
 
+                Pair<Vector3D, Vector3D> rayCenter = self.getClickRay((int) width / 2, (int) (height / 2));
+                Vector3D directionCenter = rayCenter.getValue();
+                Vector3D startPointCenter = rayCenter.getKey();
+
                 Pair<Building, Double> res = getBuildingFromRay(startPoint, direction);
                 Building closestBuilding = res.getKey();
                 double distance = res.getValue();
 
                 self.originalPlaneIntersectionPoint = Util.getIntersectionPoint(startPoint, direction, Vector3D.ZERO, Vector3D.PLUS_I, Vector3D.PLUS_K);
+                self.originalScreenCenterIntersectionPoint = Util.getIntersectionPoint(startPointCenter, directionCenter, Vector3D.ZERO, Vector3D.PLUS_I, Vector3D.PLUS_K);
 
                 if (closestBuilding == self.selectedBuilding && self.selectedBuilding != null) {
-                    self.draggingModeMove = true;
+                    state = RenderPanelState.MOVING_BUILDING;
                     self.originalBuildingTranslation = closestBuilding.getTranslation();
 
                     // calculate the height of where we intersect the building
@@ -338,8 +381,14 @@ public class RendererPanel extends JPanel implements GLEventListener {
                     originalPlaneIntersectionPoint = Util.getIntersectionPoint(startPoint.subtract(new Vector3D(0, height, 0)), direction, Vector3D.ZERO, Vector3D.PLUS_I, Vector3D.PLUS_K);
 
                 } else if (self.selectedBuilding != null && self.selectedBuilding.isHittingRotationRing(startPoint, direction)) {
-                    self.draggingModeRotate = true;
+                    state = RenderPanelState.ROTATING_BUILDING;
                     self.originalBuildingRotation = self.selectedBuilding.getRotationAngle();
+                } else {
+                    if (e.isControlDown() || SwingUtilities.isMiddleMouseButton(e)) {
+                        state = RenderPanelState.MOVING;
+                    } else {
+                        state = RenderPanelState.ROTATING;
+                    }
                 }
 
                 lastMouseCoords[0] = e.getX();
@@ -348,12 +397,17 @@ public class RendererPanel extends JPanel implements GLEventListener {
 
             @Override
             public void mouseReleased(MouseEvent e) {
-                if (self.draggingModeRotate || self.draggingModeMove) {
-                    emitBuildingEvent(selectedBuilding, BuildingChangeType.MOVED);
+                switch (state) {
+                    case MOVING_BUILDING:
+                    case ROTATING_BUILDING:
+                        emitBuildingEvent(selectedBuilding, BuildingChangeType.MOVED);
+                    case MOVING:
+                    case ROTATING:
+                        state = RenderPanelState.NONE;
+                        break;
+                    case ADDING_ROAD:
+                    case NONE:
                 }
-
-                self.draggingModeMove = false;
-                self.draggingModeRotate = false;
             }
 
             @Override
@@ -408,8 +462,7 @@ public class RendererPanel extends JPanel implements GLEventListener {
                         buildings.remove(selectedBuilding);
                         emitBuildingEvent(selectedBuilding, BuildingChangeType.DELETED);
                         selectedBuilding = null;
-                        draggingModeMove = false;
-                        draggingModeRotate = false;
+                        state = RenderPanelState.NONE;
                     }
                     if (selectedRoad != null) {
                         emitRoadEvent(selectedRoad, RoadChangeType.REMOVE);
@@ -438,22 +491,21 @@ public class RendererPanel extends JPanel implements GLEventListener {
             }
 
             @Override
-            public void keyReleased(KeyEvent e) {
-
-            }
+            public void keyReleased(KeyEvent e) { }
         });
     }
 
     @Override
     public void display(GLAutoDrawable drawable) {
 
-        long timeStart = System.nanoTime();
-
         final GL2 gl = drawable.getGL().getGL2();
 
         gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT);
 
         gl.glEnable(gl.GL_DEPTH_TEST);
+
+        gl.glEnable(gl.GL_BLEND);
+        gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA);
 
         gl.glLoadIdentity();
 
@@ -536,6 +588,22 @@ public class RendererPanel extends JPanel implements GLEventListener {
             gl.glEnd();
         }
 
+        if (debug && originalPlaneIntersectionPoint != null) {
+            gl.glColor3d(1, 0, 0);
+            gl.glBegin(GL2.GL_LINES);
+            gl.glVertex3d(originalPlaneIntersectionPoint.getX(), -RENDER_DISTANCE, originalPlaneIntersectionPoint.getZ());
+            gl.glVertex3d(originalPlaneIntersectionPoint.getX(), position.getY() + RENDER_DISTANCE, originalPlaneIntersectionPoint.getZ());
+            gl.glEnd();
+        }
+
+        if (debug && originalPlaneIntersectionPoint != null) {
+            gl.glColor3d(0, 0, 1);
+            gl.glBegin(GL2.GL_LINES);
+            gl.glVertex3d(originalScreenCenterIntersectionPoint.getX(), -RENDER_DISTANCE, originalScreenCenterIntersectionPoint.getZ());
+            gl.glVertex3d(originalScreenCenterIntersectionPoint.getX(), position.getY() + RENDER_DISTANCE, originalScreenCenterIntersectionPoint.getZ());
+            gl.glEnd();
+        }
+
         if (debug) {
             // axes
             gl.glLineWidth(8);
@@ -575,14 +643,53 @@ public class RendererPanel extends JPanel implements GLEventListener {
             textRenderer.endRendering();
         }
 
-        gl.glFlush();
 
         // Restore original (no-) translation and rotation
         gl.glLoadIdentity();
 
         renderCompass(gl);
 
+        drawIcon(gl);
 
+
+
+        gl.glFlush();
+    }
+
+    private void drawIcon(GL2 gl) {
+        Texture texture = null;
+        switch (state) {
+            case MOVING:
+                texture = textures.get(Icon.MOVE);
+                break;
+            case ROTATING:
+                texture = textures.get(Icon.ROTATE);
+                break;
+            default:
+        }
+
+        if (texture == null) {
+            return;
+        }
+
+        gl.glLoadIdentity();
+        texture.enable(gl);
+        texture.bind(gl);
+
+        gl.glTexEnvi(gl.GL_TEXTURE_ENV, gl.GL_TEXTURE_ENV_MODE, gl.GL_MODULATE);
+        gl.glBegin(gl.GL_QUADS);
+        float distance = 40;
+        gl.glTexCoord2d(0.0, 0.0);
+        gl.glVertex3f(-1.0f, -1.0f, -distance);
+        gl.glTexCoord2d(1.0, 0.0);
+        gl.glVertex3f(1.0f, -1.0f, -distance);
+        gl.glTexCoord2d(1.0, 1.0);
+        gl.glVertex3f(1.0f, 1.0f, -distance);
+        gl.glTexCoord2d(0.0, 1.0);
+        gl.glVertex3f(-1.0f, 1.0f, -distance);
+        gl.glEnd();
+
+        texture.disable(gl);
     }
 
     private void renderCompass(GL2 gl) {
@@ -663,8 +770,20 @@ public class RendererPanel extends JPanel implements GLEventListener {
     }
 
     @Override
-    public void init(GLAutoDrawable arg0) {
+    public void init(GLAutoDrawable drawable) {
         // method body
+        GL2 gl = (GL2) drawable.getGL();;
+        textures = new HashMap<>();
+
+        try {
+
+            textures.put(Icon.ROTATE, TextureIO.newTexture(Objects.requireNonNull(getClass().getClassLoader().getResourceAsStream("images/rotation.png")), true, "png"));
+            textures.put(Icon.MOVE, TextureIO.newTexture(Objects.requireNonNull(getClass().getClassLoader().getResourceAsStream("images/move.png")), true, "png"));
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
     }
 
     @Override
@@ -779,7 +898,8 @@ public class RendererPanel extends JPanel implements GLEventListener {
     public void clearAllBuildings() {
         this.buildings = new ArrayList<>();
         this.selectedBuilding = null;
-        this.draggingModeMove = false;
-        this.draggingModeRotate = false;
+        this.roads = new ArrayList<>();
+        this.selectedRoad = null;
+        state = RenderPanelState.NONE;
     }
 }

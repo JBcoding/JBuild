@@ -92,11 +92,19 @@ public class ShapeGeneratorVisitor implements ASTVisitor<List<Shape>> {
                         ((ConvexPolygon) currentShape).getPoints().size());
                 break;
             case "lshape":
+                int startIndex = 0;
+                if (node.getArguments().getArguments().size() > 1) {
+                    startIndex = (int) ((double) node.getArguments().getArguments().get(1).getValue());
+                }
+                int endIndex = 2;
+                if (node.getArguments().getArguments().size() > 2) {
+                    endIndex = (int) ((double) node.getArguments().getArguments().get(2).getValue());
+                }
                 currentShape = MultiPolygonWrapper.generatePolyCut(
                         (ConvexPolygon) currentShape,
                         (Double) node.getArguments().getArguments().get(0).getValue(),
-                        0,
-                        2);
+                        startIndex,
+                        endIndex);
                 break;
         }
         return new ArrayList<Shape>(){{add(currentShape);}};
@@ -212,12 +220,16 @@ public class ShapeGeneratorVisitor implements ASTVisitor<List<Shape>> {
     @Override
     public List<Shape> visit(BuildingNode node) {
         List<Vector3D> coordinates = new ArrayList<>();
+        double minX = Double.MAX_VALUE, minY = Double.MAX_VALUE;
         for (ExpressionNode en : node.getCoordinates()) {
             en.accept(this);
             Pair<Double, Double> p = (Pair<Double, Double>)en.getValue();
             coordinates.add(new Vector3D(p.getKey(), p.getValue(), 0));
+            minX = Math.min(minX, p.getKey());
+            minY = Math.min(minY, p.getValue());
         }
         ConvexPolygon p = new ConvexPolygon(coordinates);
+        p.translate(new Vector3D(minX, 0, -minY));
         // rotate from xy plane to xz plane
         p.setRotation(Util.createRotationMatrix(Math.PI / 2, new Vector3D(1, 0, 0)));
         currentShape = p;
@@ -378,18 +390,7 @@ public class ShapeGeneratorVisitor implements ASTVisitor<List<Shape>> {
         }
 
         for (BuildingNode building : programNode.getBuildings()) {
-            double minX = Double.MAX_VALUE, minY = Double.MAX_VALUE;
-            for (ExpressionNode coord :  building.getCoordinates()) {
-                coord.accept(this);
-                Pair<Double, Double> pair = (Pair<Double, Double>) coord.getValue();
-                minX = Math.min(pair.getKey(), minX);
-                minY = Math.min(pair.getValue(), minY);
-            }
-            List<Shape> polys = (List<Shape>) building.accept(this);
-            for (Shape poly : polys) {
-                poly.setTranslation(poly.getTranslation().add(new Vector3D(minX, 0, minY)));
-            }
-            shapes.addAll(polys);
+            shapes.addAll((List<Shape>) building.accept(this));
         }
 
         return shapes;
