@@ -1,8 +1,11 @@
 package editor;
 
+import abstract_syntax.AST;
+import abstract_syntax.BuildAstVisitor;
+import abstract_syntax.TypeCheckingVisitor;
+import building.antlr.BuildingBaseVisitor;
 import building.antlr.BuildingLexer;
 import building.antlr.BuildingParser;
-import org.antlr.v4.runtime.BaseErrorListener;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.fife.ui.rsyntaxtextarea.AbstractTokenMakerFactory;
@@ -91,9 +94,23 @@ public class FileEditorPanel extends JPanel {
                         revalidate();
                         return;
                     } else {
-                        vertical.setVisible(false);
-                        errorMessages.setText("");
-                        revalidate();
+                        BuildingBaseVisitor<AST> ASTBuilder = new BuildAstVisitor();
+                        AST ast = ASTBuilder.visitProgram(unit);
+                        TypeCheckingVisitor typeChecker = new TypeCheckingVisitor();
+                        List<String> errors = (List<String>) ast.accept(typeChecker);
+
+                        if (errors.size() > 0) {
+                            String result = errors.stream().collect(Collectors.joining("\n"));
+                            errorMessages.setText(result);
+                            vertical.setVisible(true);
+                            revalidate();
+                            return;
+
+                        } else {
+                            vertical.setVisible(false);
+                            errorMessages.setText("");
+                            revalidate();
+                        }
 
                     }
 
