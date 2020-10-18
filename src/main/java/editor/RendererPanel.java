@@ -16,6 +16,7 @@ import renderer.Building;
 import renderer.Road;
 import renderer.Util;
 
+import javax.imageio.ImageIO;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
@@ -77,6 +78,7 @@ public class RendererPanel extends JPanel implements GLEventListener {
 
 
     private Map<Icon, Texture> textures;
+    private Map<Icon, Cursor> cursors;
 
     public RendererPanel() {
         super();
@@ -657,39 +659,18 @@ public class RendererPanel extends JPanel implements GLEventListener {
     }
 
     private void drawIcon(GL2 gl) {
-        Texture texture = null;
+        Cursor cursor = null;
         switch (state) {
             case MOVING:
-                texture = textures.get(Icon.MOVE);
+                cursor = cursors.get(Icon.MOVE);
                 break;
             case ROTATING:
-                texture = textures.get(Icon.ROTATE);
+                cursor = cursors.get(Icon.ROTATE);
                 break;
             default:
+                cursor = Cursor.getDefaultCursor();
         }
-
-        if (texture == null) {
-            return;
-        }
-
-        gl.glLoadIdentity();
-        texture.enable(gl);
-        texture.bind(gl);
-
-        gl.glTexEnvi(gl.GL_TEXTURE_ENV, gl.GL_TEXTURE_ENV_MODE, gl.GL_MODULATE);
-        gl.glBegin(gl.GL_QUADS);
-        float distance = 40;
-        gl.glTexCoord2d(0.0, 0.0);
-        gl.glVertex3f(-1.0f, -1.0f, -distance);
-        gl.glTexCoord2d(1.0, 0.0);
-        gl.glVertex3f(1.0f, -1.0f, -distance);
-        gl.glTexCoord2d(1.0, 1.0);
-        gl.glVertex3f(1.0f, 1.0f, -distance);
-        gl.glTexCoord2d(0.0, 1.0);
-        gl.glVertex3f(-1.0f, 1.0f, -distance);
-        gl.glEnd();
-
-        texture.disable(gl);
+        setCursor(cursor);
     }
 
     private void renderCompass(GL2 gl) {
@@ -774,11 +755,15 @@ public class RendererPanel extends JPanel implements GLEventListener {
         // method body
         GL2 gl = (GL2) drawable.getGL();;
         textures = new HashMap<>();
+        cursors = new HashMap<>();
 
         try {
 
             textures.put(Icon.ROTATE, TextureIO.newTexture(Objects.requireNonNull(getClass().getClassLoader().getResourceAsStream("images/rotation.png")), true, "png"));
             textures.put(Icon.MOVE, TextureIO.newTexture(Objects.requireNonNull(getClass().getClassLoader().getResourceAsStream("images/move.png")), true, "png"));
+
+            cursors.put(Icon.MOVE, Toolkit.getDefaultToolkit().createCustomCursor(ImageIO.read(Objects.requireNonNull(getClass().getClassLoader().getResource("images/move.png"))), new Point(24, 24), "move_cursor"));
+            cursors.put(Icon.ROTATE, Toolkit.getDefaultToolkit().createCustomCursor(ImageIO.read(Objects.requireNonNull(getClass().getClassLoader().getResource("images/rotation.png"))), new Point(24, 24), "rotate_cursor"));
 
         } catch (IOException e) {
             e.printStackTrace();
