@@ -1,9 +1,6 @@
 package renderer;
 
-import AST.Axis;
 import com.jogamp.opengl.GL2;
-import org.apache.commons.math3.geometry.euclidean.threed.Rotation;
-import org.apache.commons.math3.geometry.euclidean.threed.RotationOrder;
 import org.apache.commons.math3.geometry.euclidean.threed.Vector3D;
 import org.apache.commons.math3.geometry.euclidean.twod.Vector2D;
 import org.apache.commons.math3.linear.MatrixUtils;
@@ -11,7 +8,6 @@ import org.apache.commons.math3.linear.RealMatrix;
 
 import java.awt.*;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 public class MultiPolygonWrapper extends Shape {

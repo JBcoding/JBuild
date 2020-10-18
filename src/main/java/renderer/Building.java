@@ -1,6 +1,6 @@
 package renderer;
 
-import AST.*;
+import abstract_syntax.*;
 import building.antlr.BuildingBaseVisitor;
 import building.antlr.BuildingLexer;
 import building.antlr.BuildingParser;

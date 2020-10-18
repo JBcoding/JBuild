@@ -48,7 +48,7 @@ splitRepeating : ASTERIX;
 
 splitDecl : expression COLON enclosedPolystatements;
 
-arguments : LPAREN expression (COMMA expression)* RPAREN;
+arguments : LPAREN expression (COMMA expression)* RPAREN | LPAREN RPAREN;
 
 ifCommand : 'if' LPAREN expression RPAREN LBRACE polyStatements RBRACE LBRACE polyStatements RBRACE;
 

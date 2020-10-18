@@ -1,6 +1,6 @@
 package renderer;
 
-import AST.*;
+import abstract_syntax.*;
 import javafx.util.Pair;
 import org.apache.commons.math3.geometry.euclidean.threed.Vector3D;
 import org.apache.commons.math3.geometry.euclidean.twod.Vector2D;
